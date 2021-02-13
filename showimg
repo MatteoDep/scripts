@@ -1,0 +1,24 @@
+#!/bin/sh
+
+size=$(stty size)
+height=${size% *}
+width=${size#* }
+
+if [ -z $2 ]; then
+    w=$width
+    h=$height
+else 
+    w=$2
+    h=$(echo $((( ($2*$height/$width) ))))
+fi
+
+x=$(echo $((( ($width-$w)/2 ))))
+y=$(echo $((( ($height-$h)/2 ))))
+echo $x $y
+
+echo "Press Enter to close"
+
+ueberzug layer --parser bash 0< <(
+    declare -Ap add_command=([action]="add" [identifier]="image" [x]="$x" [y]="$y" [path]="$1" [scaler]="contain" [width]="$w" [height]="$h")
+    read
+)
