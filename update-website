@@ -1,0 +1,3 @@
+#!/bin/sh
+
+rsync -uvrP --delete-after ~/website/ root@matteodep.xyz:/var/www/matteodep
