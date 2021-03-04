@@ -38,7 +38,7 @@ printprices() { # Print/format all prices
 [ "$(stat -c %x "$HOME/.local/share/crypto-prices" | cut -d' ' -f1)" != "$(date '+%Y-%m-%d')" ] &&
 	{ ping -q -c 1 example.org >/dev/null 2>&1 && getprices || exit ;}
 
-case $BLOCK_BUTTON in
+case $BUTTON in
 	1) uptime="$(date -d "$(stat -c %x "$dir")" '+%D at %T' | sed "s|$(date '+%D')|Today|")"
 		notify-send "Exact prices in USD" "$(awk -F';' '{print $1, $3 ":\n\t$" $2}' "$dir"/*)
 <b>Last updated:</b>
