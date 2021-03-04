@@ -10,9 +10,9 @@ case $BUTTON in
 🔌: charging
 ⚡: charged
 ❗: battery very low!
-- Scroll to change adjust xbacklight." ;;
-	4) xbacklight -inc 10 ;;
-	5) xbacklight -dec 10 ;;
+- Scroll to change adjust backlight." ;;
+	4) backlight -i 1 ;;
+	5) backlight -d 1 ;;
 	6) "$TERMINAL" -e "$EDITOR" "$0" ;;
 esac
 
@@ -29,6 +29,6 @@ do
 	# If it is discharging and 25% or less, we will add a ❗ as a warning.
 	 [ "$capacity" -le 25 ] && [ "$status" = "🔋" ] && warn="❗" && notify-send "❗❗❗LOW BATTERY ❗❗❗"
 
-	printf "%s%s%s%%%%" "$status" "$warn" "$capacity"
+	echo "$status$warn$capacity%"
 	unset warn
 done
