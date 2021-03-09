@@ -37,8 +37,8 @@ case $BUTTON in
 - Right click to see 7 days charts.
 - Shows "$refresh" if updating prices.
 - Manually add/remove currencies to list in the script.
-Exact prices in USD:
-$(awk -F';' '{print $1, $3 ":\n\t$" $2}' "$dir"/*-price)
+Exact prices:
+$(awk -F';' '{print $1, $3 ":\n\t€" $2}' "$dir"/*-price)
 <b>Last updated:</b>$uptime" ;;
 	6) "$TERMINAL" -e "$EDITOR" "$0" ;;
 esac
