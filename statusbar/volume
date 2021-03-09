@@ -1,28 +1,32 @@
 #!/bin/sh
 
-# Prints the current volume or 🔇 if muted.
+# Prints the current volume
+muted="🔇"
+high=""
+medium=""
+low=""
 
 case $BUTTON in
 	1) setsid -f "$TERMINAL" -e pulsemixer ;;
 	2) pamixer -t ;;
 	4) pamixer --allow-boost -i 1 ;;
 	5) pamixer --allow-boost -d 1 ;;
-	3) notify-send "📢 Volume module" "\- Shows volume 🔊, 🔇 if muted.
+	3) notify-send "Volume module" "\- Shows volume, $muted if muted.
 - Middle click to mute.
 - Scroll to change." ;;
 	6) "$TERMINAL" -e "$EDITOR" "$0" ;;
 esac
 
-[ $(pamixer --get-mute) = true ] && echo 🔇 && exit
+[ $(pamixer --get-mute) = true ] && echo $muted && exit
 
 vol="$(pamixer --get-volume)"
 
 if [ "$vol" -gt "70" ]; then
-	icon="🔊"
+	icon=$high
 elif [ "$vol" -lt "30" ]; then
-	icon="🔈"
+	icon=$low
 else
-	icon="🔉"
+	icon=$medium
 fi
 
 echo "$icon$vol%"
