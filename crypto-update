@@ -1,0 +1,27 @@
+#!/bin/sh
+
+# human-readable name;urlname;icon
+coins="Bitcoin;btc;
+Etherium;eth;
+Cardano;ada;
+Polkadot;dot;
+Basic Attention Token;bat;"
+
+# Directory where currency info is stored.
+dir="${XDG_DATA_HOME:-$HOME/.local/share}/crypto-prices"
+interval="@7d"	# History contained in chart preceded by '@' (7d = 7 days)
+
+update() {
+    { rm -rf "${dir:?}/*"
+	echo "$coins" | while IFS=';' read -r human code icon; do
+		val="$(curl -s "eur.rate.sx/1$code")" &&
+            echo "$icon;$val;$human" > "$dir/$code-price" &&
+            curl -s "eur.rate.sx/$code$interval" > "$dir/$code-chart"
+	done; [ -d "$dir" ] && touch "$dir"
+	pkill -RTMIN+13 "${STATUSBAR:-dwmblocks}" ;} &
+	exit
+}
+
+[ ! -d "$dir" ] && mkdir -p "$dir"
+update
+

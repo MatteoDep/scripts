@@ -3,52 +3,43 @@
 # Shows the price for desired cryptocurrencies. Module updates automatically
 # every calendar day, but can also be updated with a middle click.
 
-# Currencies should be ;-separated:
-# human-readable name;urlname;icon
-coins="Bitcoin;btc;💰
-Etherium;eth;🍸
-Basic Attention Token;bat;🦁"
-# LBC;lbc;📚"
+# coins to print
+coins="btc eth"
+
+refresh=''
 
 # Directory where currency info is stored.
 dir="${XDG_DATA_HOME:-$HOME/.local/share}/crypto-prices"
 
-getprices() { # The command to get the desired prices
-	printf "🔃 "; printprices
-	{ rm -rf "${dir:?}/*"
-	echo "$coins" | while IFS=';' read -r human web icon; do
-		val="$(curl -s "rate.sx/1$web")" &&
-		echo "$icon;$val;$human" > "$dir/$web"
-	done; [ -d "$dir" ] && touch "$dir"
-	pkill -RTMIN+13 "${STATUSBAR:-dwmblocks}" ;} &
-	exit
-	}
-
 printprices() { # Print/format all prices
-	for x in "$dir"/*; do
-		[ -f "$x" ] || break
-		icon="$(cut -d';' -f1 "$x")"
-		price="$(cut -d';' -f2 "$x")"
-		printf "%s%.2f$ " $icon $price
+	for coin in $coins; do
+        coinfile="$dir/$coin-price"
+		[ -f "$coinfile" ] || continue
+		icon="$(cut -d';' -f1 "$coinfile")"
+		price="$(cut -d';' -f2 "$coinfile")"
+		printf "%s%.2f€ " $icon $price
 	done | sed 's/ $/\n/'
 	}
 
-[ ! -d "$dir" ] && mkdir -p "$dir" && { getprices; exit ;}
-
 # If currencies haven't been updated today, try to update them.
-[ "$(stat -c %x "$HOME/.local/share/crypto-prices" | cut -d' ' -f1)" != "$(date '+%Y-%m-%d')" ] &&
-	{ ping -q -c 1 example.org >/dev/null 2>&1 && getprices || exit ;}
+[ "$(stat -c %x "$dir" | cut -d' ' -f1)" != "$(date '+%Y-%m-%d')" ] &&
+	{ ping -q -c 1 example.org >/dev/null 2>&1 && crypto-update || exit ;}
 
 case $BUTTON in
-	1) uptime="$(date -d "$(stat -c %x "$dir")" '+%D at %T' | sed "s|$(date '+%D')|Today|")"
-		notify-send "Exact prices in USD" "$(awk -F';' '{print $1, $3 ":\n\t$" $2}' "$dir"/*)
-<b>Last updated:</b>
-	$uptime" ;;
-	2) getprices ;;
-	3) notify-send "💸 Crypto-currency module" "\- Left click for exact prices.
+	1) cat "$dir"/*-chart > "$dir"/tmp
+        setsid "$TERMINAL" -e less -SRf "$dir"/tmp
+        rm "$dir"/tmp;;
+    2) echo -n $refresh" "; printprices
+        ping -q -c 1 example.org >/dev/null 2>&1 && crypto-update || notify-send "No Network!";;
+	3) uptime="$(date -d "$(stat -c %x "$dir")" '+%D at %T' | sed "s|$(date '+%D')|Today|")"
+        notify-send "Crypto-currency module" "\- Right check all crypto prices.
 - Middle click to update.
-- Shows 🔃 if updating prices.
-- Manually add/remove currencies to list in the script." ;;
+- Right click to see 7 days charts.
+- Shows "$refresh" if updating prices.
+- Manually add/remove currencies to list in the script.
+Exact prices in USD:
+$(awk -F';' '{print $1, $3 ":\n\t$" $2}' "$dir"/*-price)
+<b>Last updated:</b>$uptime" ;;
 	6) "$TERMINAL" -e "$EDITOR" "$0" ;;
 esac
 
