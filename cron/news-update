@@ -7,8 +7,11 @@ ping -q -c 1 example.org > /dev/null || exit
 
 pgrep -f newsboat$ && /usr/bin/xdotool key --window "$(/usr/bin/xdotool search --name newsboat)" R && exit
 
-echo  > /tmp/newsupdate
+echo "$(news)" > /tmp/newsupdate
+
 pkill -RTMIN+6 "${STATUSBAR:-dwmblocks}"
+
 /usr/bin/newsboat -x reload
 rm -f /tmp/newsupdate
+
 pkill -RTMIN+6 "${STATUSBAR:-dwmblocks}"

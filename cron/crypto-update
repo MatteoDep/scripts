@@ -16,20 +16,21 @@ interval="@7d"	# History contained in chart preceded by '@' (7d = 7 days)
 
 refname=$(echo $ref | cut -d';' -f1)
 refsym=$(echo $ref | cut -d';' -f2)
-echo $refname
-echo $refsym
 
 update() {
-    { rm -rf "${dir:?}/*"
+    rm -rf "${dir:?}/*"
 	echo "$coins" | while IFS=';' read -r human coin icon; do
 		val="$(curl -s "$refname.rate.sx/1$coin")" &&
             echo "$icon;$val$refsym;$human" > "$dir/$coin-price" &&
             curl -s "$refname.rate.sx/$coin$interval" > "$dir/$coin-chart"
 	done; [ -d "$dir" ] && touch "$dir"
-	pkill -RTMIN+13 "${STATUSBAR:-dwmblocks}" ;} &
-	exit
 }
 
-[ ! -d "$dir" ] && mkdir -p "$dir"
-update
+echo "$(crypto)" > /tmp/cryptoupdate
+pkill -RTMIN+13 "${STATUSBAR:-dwmblocks}"
 
+[ ! -d "$dir" ] && mkdir -p "$dir"
+ping -q -c 1 example.org >/dev/null 2>&1 && update || notify-send "No Network!"
+rm -f /tmp/cryptoupdate
+
+pkill -RTMIN+13 "${STATUSBAR:-dwmblocks}"
