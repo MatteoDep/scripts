@@ -26,7 +26,7 @@ update() {
 	done; [ -d "$dir" ] && touch "$dir"
 }
 
-echo "$(crypto)" > /tmp/cryptoupdate
+echo "$(sb-crypto)" > /tmp/cryptoupdate
 pkill -RTMIN+13 "${STATUSBAR:-dwmblocks}"
 
 [ ! -d "$dir" ] && mkdir -p "$dir"
