@@ -2,7 +2,7 @@
 
 options="lock
 suspend
-shutdown
+poweroff
 reboot"
 
 choice=$(echo "$options" | dmenu -p "select: ")
@@ -10,7 +10,7 @@ choice=$(echo "$options" | dmenu -p "select: ")
 case "$choice" in
     "lock") slock;;
     "suspend") loginctl suspend;;
-    "shutdown") loginctl shutdown;;
+    "poweroff") loginctl poweroff;;
     "reboot") loginctl reboot;;
     *) exit
 esac
