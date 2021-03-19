@@ -21,10 +21,6 @@ printprices() { # Print/format all prices
 	done | sed 's/ $/\n/'
 	}
 
-# If currencies haven't been updated today, try to update them.
-[ "$(stat -c %x "$dir" | cut -d' ' -f1)" != "$(date '+%Y-%m-%d')" ] &&
-	{ crypto-update || exit ;}
-
 case $BUTTON in
 	1) cat "$dir"/*-chart > /tmp/cryptocharts
         setsid "$TERMINAL" -e less -SRf /tmp/cryptocharts
