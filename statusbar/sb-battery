@@ -34,7 +34,7 @@ do
 	status=$(sed "s/[Dd]ischarging//;s/[Nn]ot charging/$notch/;s/[Cc]harging/$charg/;s/[Uu]nknown/$stag/;s/[Ff]ull/$full/" "$battery"/status)
 
     case $(( $capacity/25 )) in
-        0) cap=$bat0; [ -z "$status" ] && status=$warn && notify-send "❗❗❗LOW BATTERY ❗❗❗";;
+        0) cap=$bat0; [ -z "$status" ] && status=$warn && notify-send -u "critical" "LOW BATTERY";;
         1) cap=$bat1;;
         2) cap=$bat2;;
         3) cap=$bat3;;
