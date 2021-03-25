@@ -5,64 +5,69 @@ _bluetoothctl() {
 }
 
 notify() {
-    local msg
-    local is_error
-
     msg=${1?BUG: no message}
-    is_error=${2:-0}
+    case $2 in
+        "critical") urgency=$2;;
+        *) urgency="normal";;
+    esac
 
     if command -v notify-send >/dev/null 2>&1; then
-        notify-send "dm-bluetooth" "$msg"  # TODO: escaping
-    fi
-
-    if (( is_error )); then
-        printf 'ERROR: %s\n' "$msg" >&2
-    else
-        printf '%s\n' "$msg"
+        notify-send -u "$urgency" "  dm-bluetooth" "$msg"
     fi
 }
 
-connect_disconnect() {
-    local mode
-    local name
-    local mac
-    local preposition
-    local expected_to_connect
-    local retries
+get_devices() {
+    echo "devices" | _bluetoothctl | grep 'Device' | cut -d' ' -f2-
+}
 
+get_new_devices() {
+    wait_time="5"
+    notify "  scanning ...\nplease wait ${wait_time}s"
+    echo -e "$(timeout "$wait_time" bluetoothctl -- scan on)" | grep 'NEW' | cut -d' ' -f3-
+    printf 'scan off\n' | _bluetoothctl 2>&1 >/dev/null
+}
+
+connect_disconnect() {
     mode=${1?BUG: missing mode}
     retries=15
 
     case $mode in
-        connect)
+        "connect")
             preposition=to
             expected_to_connect=yes
         ;;
-        disconnect)
+        "disconnect")
             preposition=from
             expected_to_connect=no
         ;;
     esac
 
-    # get devices
-    declare -A DEVICES
-    while read -r _ mac name; do
-        DEVICES["$name"]=$mac
-    done < <(echo "devices" | _bluetoothctl | awk '$1 == "Device"')
+    devices=$(get_devices)
+    scan="scan for new device"
+    options=$(printf "$devices" | cut -d' ' -f2-; echo "$scan")
 
-    if ! (( ${#DEVICES[@]} )); then
-        notify "No devices found. Are they registered with D-Bus?" 1
-        return 2
-    fi
+    name=$(printf "$options" | dmenu -p "choose device" -l 10)
+    [ -z $name ] && exit 0 || printf 'power on\n' | _bluetoothctl
 
-    name=$(printf '%s\n' "${!DEVICES[@]}" | dmenu -p "choose device" -l 10)
-    [[ $name ]] || return
-    mac=${DEVICES["$name"]}
+    [ "$name" = "$scan" ] && [ "$mode" = "connect" ] && {
+        gotit=0
+        while [ "$gotit" -eq "0" ]; do
+            devices=$(get_new_devices)
+            options=$(echo "retry"; printf "$devices" | cut -d' ' -f2-)
+            name=$(printf "$options" | dmenu -p "choose device" -l 10)
+            [ -z $name ] && echo "HEY" && exit 1
+            [ "$name" = "retry" ] || gotit=1
+        done
+        mac=$(echo $devices | grep "$name" | cut -d' ' -f1)
+        printf 'pair %s\ntrust %s\n' "$mac" "$mac" | _bluetoothctl
+    }
 
+    mac=$(printf "$devices" | grep "$name" | cut -d' ' -f1)
     notify "Attempting to $mode $preposition $name"
 
-    while (( retries-- )); do
-        printf 'power on\n%s %s\n' "$mode" "$mac" | _bluetoothctl
+    i=1
+    while [ "$i" -ne "$retries" ]; do
+        printf '%s %s\n' "$mode" "$mac" | _bluetoothctl
         if printf 'info %s\n' "$mac" |
             _bluetoothctl |
             grep -Pq '^[\t ]+Connected: '"$expected_to_connect"; then
@@ -70,10 +75,11 @@ connect_disconnect() {
             return 0
         fi
         sleep 1
+        i=$((i + 1))
     done
 
     ret="$?"
-    notify "Failed to $mode $preposition $name" 1
+    notify "Failed to $mode $preposition $name" "critical"
     return "$ret"
 }
 
@@ -82,14 +88,15 @@ execute_mode(){
     mode=${1?BUG: missing mode}
 
     case $mode in
-        connect|disconnect)
+        "connect"|"disconnect")
             connect_disconnect $mode
         ;;
         "power off")
-            echo "power_off" | _bluetoothctl | notify "Successfully turned off bluetooth"
+            printf 'power off\n' | _bluetoothctl | notify "Successfully turned off bluetooth"
         ;;
         *)
-            notify "Unknown mode $mode"
+            [ -z $mode ] || notify "Unknown mode $mode" || exit 2
+            exit 1
         ;;
     esac
 
