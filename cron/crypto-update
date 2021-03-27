@@ -12,10 +12,11 @@ LBRY Credits;lbc;"
 
 # Directory where currency info is stored.
 dir="${XDG_DATA_HOME:-$HOME/.local/share}/crypto-prices"
-interval="@7d"	# History contained in chart preceded by '@' (7d = 7 days)
+interval="@7d"
 
 refname=$(echo $ref | cut -d';' -f1)
 refsym=$(echo $ref | cut -d';' -f2)
+echo "$refname.rate.sx/1$coin"
 
 update() {
     rm -rf "${dir:?}/*"

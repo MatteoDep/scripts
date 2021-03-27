@@ -13,11 +13,10 @@ printprices() { # Print/format all prices
 	for coin in $coins; do
         coinfile="$dir/$coin-price"
 		[ -f "$coinfile" ] || continue
-		icon="$(cut -d';' -f1 "$coinfile")"
-		price="$(cut -d';' -f2 "$coinfile")"
-        ref=${price: -1}
-        value=${price:0:-1}
-		printf "%s%.2f%s " $icon $value $ref
+        sed 's/^\(.\);\([0-9\.]*\)\(.\);.*/\1 \2 \3/' $coinfile | {
+            read icon value ref
+            printf "%s%.2f%s " $icon $value $ref
+        }
 	done | sed 's/ $/\n/'
 	}
 
