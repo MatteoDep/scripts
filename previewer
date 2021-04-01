@@ -1,0 +1,3 @@
+#!/bin/sh
+[ -f $1 ] && bat --color always --wrap never --pager never $1 --style plain ||
+    lsd --tree --depth=3 --color=always --icon=always $1

@@ -3,11 +3,13 @@
 # Set as a cron job to check for new RSS entries for newsboat.
 # If newsboat is open, sends it an "R" key to refresh.
 
+refresh='累 '
+
 ping -q -c 1 example.org > /dev/null || exit
 
 pgrep -f newsboat$ && /usr/bin/xdotool key --window "$(/usr/bin/xdotool search --name newsboat)" R && exit
 
-echo "$(sb-news)" > /tmp/newsupdate
+echo "$refresh$(sb-news)" > /tmp/newsupdate
 
 pkill -RTMIN+6 "${STATUSBAR:-dwmblocks}"
 

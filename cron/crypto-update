@@ -1,22 +1,22 @@
 #!/bin/sh
 
 # human-readable name;urlname;icon
-ref="usd;$"
+refname="usd"
+refsym="$"
 coins="Bitcoin;btc;
 Etherium;eth;
 Cardano;ada;
 Polkadot;dot;
-Basic Attention Token;bat;
 Binance Coin;bnb;
+Monero;xmr;
+Basic Attention Token;bat;
 LBRY Credits;lbc;"
 
 # Directory where currency info is stored.
 dir="${XDG_DATA_HOME:-$HOME/.local/share}/crypto-prices"
 interval="@7d"
 
-refname=$(echo $ref | cut -d';' -f1)
-refsym=$(echo $ref | cut -d';' -f2)
-echo "$refname.rate.sx/1$coin"
+refresh='累 '
 
 update() {
     rm -rf "${dir:?}/*"
@@ -27,7 +27,7 @@ update() {
 	done; [ -d "$dir" ] && touch "$dir"
 }
 
-echo "$(sb-crypto)" > /tmp/cryptoupdate
+echo "$refresh$(sb-crypto)" > /tmp/cryptoupdate
 pkill -RTMIN+13 "${STATUSBAR:-dwmblocks}"
 
 [ ! -d "$dir" ] && mkdir -p "$dir"

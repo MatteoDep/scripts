@@ -3,8 +3,7 @@
 # Displays number of unread news items and an loading icon if updating.
 # When clicked, brings up `newsboat`.
 
-news=''
-refresh=''
+news='參 '
 
 case $BUTTON in
     1) setsid "$TERMINAL" -e newsboat ;;

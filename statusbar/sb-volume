@@ -1,10 +1,10 @@
 #!/bin/sh
 
 # Prints the current volume
-muted=""
-high=""
-medium=""
-low=""
+muted="ﱝ "
+high=" "
+medium= ""
+low=" "
 
 case $BUTTON in
 	1) setsid -f "$TERMINAL" -e pulsemixer ;;

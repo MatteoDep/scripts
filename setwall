@@ -1,0 +1,3 @@
+#!/bin/sh
+
+[ -n "$1" ] && cp "$1" "${XDG_DATA_HOME:-$HOME/.local/share}"/wallpaper."${1##*.}" && xwallpaper --zoom $HOME/.local/share/wallpaper.jpg

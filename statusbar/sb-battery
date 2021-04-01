@@ -3,16 +3,16 @@
 # Prints all batteries, their percentage remaining and an emoji corresponding
 # to charge status
 
-notch=''
+notch=' '
 warn=''
-charg=''
+charg=' '
 full=''
-stag=''
-bat0=''
-bat1=''
-bat2=''
-bat3=''
-bat4=''
+stag=' '
+bat0='  '
+bat1='  '
+bat2='  '
+bat3='  '
+bat4='  '
 
 case $BUTTON in
 	3) notify-send "🔋 Battery module" $notch": not charging
