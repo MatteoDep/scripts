@@ -7,14 +7,14 @@ wifiup='直 '
 ethup=' '
 wifidown='睊 '
 ethdown=' '
+
 case $BUTTON in
 	1) "$TERMINAL" -e nmtui; pkill -RTMIN+4 dwmblocks ;;
 	3) notify-send "Internet module" "\- Click to connect
-"$wifidown": looking for wifi connection
-"$wifiup": wifi connection with quality
-"$ethdown": no ethernet
-"$ethup": ethernet working
-" ;;
+$wifidown: looking for wifi connection
+$wifiup:wifi connection with quality
+$ethdow no ethernet
+$ethupthernet working" ;;
 	6) "$TERMINAL" -e "$EDITOR" "$0" ;;
 esac
 

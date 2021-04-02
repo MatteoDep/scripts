@@ -15,11 +15,11 @@ bat3='  '
 bat4='  '
 
 case $BUTTON in
-	3) notify-send "🔋 Battery module" $notch": not charging
-"$stag": stagnant charge
-"$charg": charging
-"$full": charged
-"$warn": battery very low!
+	3) notify-send "Battery module" "$notch: not charging
+$stag: stagnant charge
+$charg: charging
+$full: charged
+$warn: battery very low!
 - Scroll to change adjust backlight." ;;
 	4) backlight -i 10 ;;
 	5) backlight -d 10 ;;

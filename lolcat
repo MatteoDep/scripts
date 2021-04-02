@@ -1,0 +1,141 @@
+#!/bin/sh
+
+# shlolcat - lolcat written as a posix shell script and friends.
+# Copyright 2019 Avi Halachmi (:avih) avihpit@yahoo.com
+# License: MIT
+# Home page: https://github.com/avih/shlolcat
+
+esc=yes colors=true off= min=80 max=255 dx=10 dy=30 ab=
+tab=8  # assumption about the terminal's tab width
+
+usage() {
+    echo "Usage: shlolcat [OPTIONS]... [FILE]..."
+    echo "Concatenate files and print to standard output in rainbow colors."
+    echo "With no FILE, or when FILE is -, read standard input."
+    echo
+    echo "  -h             Print this help and exit."
+    echo "  -e             Strip escape sequences from input."
+    echo "  -c COLORS      (1|8|256|true) Colors to use. Default: -c $colors."
+    echo "  -a MIN -b MAX  (0-255) R/G/B values limits. Default: -a $min -b $max."
+    echo "  -x DX  -y DY   (0-255) char/line color advancement. Default: -x $dx -y $dy."
+    echo "  -o OFFSET      (0-100) Offset the pattern. Default: random."
+    echo
+    echo "Requires: od, cksum, date."
+    echo "Home page: https://github.com/avih/shlolcat"
+}
+
+err_exit() {
+    [ -z "${1-}" ] || >&2 echo "Error: $1"
+    >&2 echo "Usage: shlolcat -h | [-ea:b:c:x:y:o:] [FILE]..."
+    exit 1
+}
+
+# true if $1 is an integer and $2 <= $1 <= $3
+intrange() {
+    case $1 in *[!0123456789]*|'') return 1; esac
+    [ "$1" -ge "$2" ] && [ "$1" -le "$3" ];
+}
+
+while getopts a:b:c:eho:x:y: o; do
+    case $o in
+        h) usage; exit 0;;
+        e) esc=no;;
+        c) case $OPTARG in 1|8|2|256|t|true) colors=$OPTARG;; *) err_exit "bad COLORS"; esac;;
+        o) intrange "$OPTARG" 0 100 && off=$OPTARG || err_exit "bad OFFSET";;
+        a) intrange "$OPTARG" 0 255 && min=$OPTARG ab=1 || err_exit "bad MIN";;
+        b) intrange "$OPTARG" 0 255 && max=$OPTARG ab=1 || err_exit "bad MAX";;
+        x) intrange "$OPTARG" 0 255 && dx=$OPTARG || err_exit "bad DX";;
+        y) intrange "$OPTARG" 0 255 && dy=$OPTARG || err_exit "bad DY";;
+        *) err_exit;;
+    esac
+done
+[ $min -le $max ] || err_exit "MIN is bigger than MAX"
+case $colors in 1|8) [ "$ab" ] || min=0 max=255; esac  # set full range if unset
+shift $((OPTIND-1))
+
+# list_as_octals prints stdin bytes as 3-digits octal values, several per line
+list_as_octals() { od -b -v -A n; }
+rand() { sd=$(echo ${sd:-$(date)$$}|cksum); rnd=$((1${sd%????}%$1)); } # [0..$1)
+
+case $colors in
+    # define add_cc() for the -c value: adds color+octal to $line as printf fmt
+    # the 256 colors approximation is highly inaccurate, but reasonably useful.
+    t|true) add_cc() { line=$line"\033[38;2;$r;$g;${b}m\\$1"; };;
+     2|256) add_cc() { line=$line"\033[38;5;$((16 + 36*(r/45) + 6*(g/45) + b/45))m\\$1"; };;
+         8) add_cc() { line=$line"\033[$((30 + 4*(b>127) + 2*(g>127) + (r>127) ))m\\$1"; };;
+         1) add_cc() { line=$line"\033[$(( (r+g+b) > 383 ))m\\$1"; };; # no 22 on vt102
+esac
+
+# advance color $r $g $b by $1 (0-255). state is maintained at $s .
+color_cycle() {
+    case $s in
+        G+) g=$((g+$1)); [ $max -gt $g ] || g=$max s=R- ;;
+        R-) r=$((r-$1)); [ $min -lt $r ] || r=$min s=B+ ;;
+        B+) b=$((b+$1)); [ $max -gt $b ] || b=$max s=G- ;;
+        G-) g=$((g-$1)); [ $min -lt $g ] || g=$min s=R+ ;;
+        R+) r=$((r+$1)); [ $max -gt $r ] || r=$max s=B- ;;
+        B-) b=$((b-$1)); [ $min -lt $b ] || b=$min s=G+ ;;
+    esac
+}
+
+# main, pipefail-like: if `cat' succeeds then 0 byte is appended to its output,
+# else 'x' is appended, and the code checks the last byte to detect errors.
+# if `od' failed (assuming no output) then we also exit with an error.
+# We don't bother with the actual error codes, nor testing for native pipefail.
+
+{ cat -- "$@" && printf \\0 || printf x; } | list_as_octals | {
+    r=$max g=$min b=$min s=G+
+    [ "$off" ] || { rand 100; off=$rnd; }  # 100x16 is full cycle with -a0 -b255
+    while [ $off -gt 0 ]; do color_cycle 16; off=$((off-1)); done
+
+    R=$r G=$g B=$b S=$s  # saved for next line
+    x=0 e=0 line=  # column for tab tracking, esc state, line buffer
+    c= o=  # cur/prev octal. handling is delayed-by-1, last octal isn't printed
+
+    trap 'printf \\033[0m' 2 3 6
+    while read octals; do
+      for c in $octals; do
+        case $e$o in
+        0033)  # esc
+            [ "$esc" = no ] || line=$line\\$o
+            e=1
+            ;;
+        0012)  # newline
+            printf "$line\n"
+            r=$R g=$G b=$B s=$S
+            color_cycle $dy
+            R=$r G=$g B=$b S=$s
+            x=0 line=
+            ;;
+        0011)  # tab
+            color_cycle $dx
+            add_cc $o
+            x=$((x+1))
+            while [ $((x % tab)) != 0 ]; do
+                color_cycle $dx
+                x=$((x+1))
+            done
+            ;;
+        0[013]??)  # ascii7 or utf8 leading byte
+            color_cycle $dx
+            add_cc $o
+            x=$((x+1))
+            ;;
+        0???)  # utf8 continuation byte
+            line=$line\\$o
+            ;;
+        1???)  # first char after esc. 133 is '[', 050/051 are '(',')' stay(rom)
+            [ $esc = no ] || line=$line\\$o
+            case $o in 133) e=2;; 05[01]) ;; *) e=0; esac
+            ;;
+        2???)  # inside CSI sequence
+            [ $esc = no ] || line=$line\\$o
+            case $o in 1??) e=0; esac
+            ;;
+        esac
+        o=$c  # current octal is handled at the next iteration, or below if EOF
+      done
+    done
+    printf "$line\033[0m"
+    [ 000 = "$o" ] || err_exit  # last is 000 if cat succeeded + od translated
+}

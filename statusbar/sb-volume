@@ -2,9 +2,9 @@
 
 # Prints the current volume
 muted="ﱝ "
-high=" "
-medium= ""
-low=" "
+high="墳 "
+medium="奔 "
+low="奄 "
 
 case $BUTTON in
 	1) setsid -f "$TERMINAL" -e pulsemixer ;;
@@ -22,11 +22,11 @@ esac
 vol="$(pamixer --get-volume)"
 
 if [ "$vol" -gt "70" ]; then
-	icon=$high
+	icon="$high"
 elif [ "$vol" -lt "30" ]; then
-	icon=$low
+	icon="$low"
 else
-	icon=$medium
+	icon="$medium"
 fi
 
 echo "$icon$vol%"
