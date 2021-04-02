@@ -1,45 +1,25 @@
 #!/bin/bash
-# usage example:
-# getrandimgs number_of_images from_dir to_dir
-num=10
-ext="jpg"
+
+num=1
 
 usage() {
-echo "Usage: ./getrandimgs [ -n number_of_images ] [ -e extension ] from_dir to_dir"
+echo "Usage: get-rand-img [-n number_of_images] dir"
 }
-while getopts "n:e:h" option
-do 
-	case "${option}" in 
-		n) 
-		num=${OPTARG};; 
-		e) 
-		ext=${OPTARG};; 
+
+while getopts "n:h" option
+do
+	case "${option}" in
+		n)
+            num=${OPTARG};;
 		h)
-		usage
-		exit 1;;
+            usage
+            exit 0;;
 		*)
-		echo "Error!" 1>&2
-		usage >&2
-		exit 1;;
-	esac 
-done 
+            echo "Error!" 1>&2
+            usage >&2
+            exit 1;;
+	esac
+done
 shift $((OPTIND-1))
 
-if [ $num -eq -1 ]
-then
-	find "$1" -iname "*.$ext" | sed 's/\ /\\ /g' > tmp
-else
-	find "$1" -iname "*.$ext" | shuf -n $num | sed 's/\ /\\ /g' > tmp
-fi
-
-k=1
-while read img
-do
-	cp "$img" $2$k"."$ext
-	if [ "$ext"=="TIF" ]
-	then
-		convert -quiet $2$k".TIF" $2$k".png"
-	fi
-	((k=$k+1))
-done < tmp
-rm tmp
+find "$1" -type f | shuf -n $num

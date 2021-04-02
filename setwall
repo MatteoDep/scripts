@@ -1,3 +1,8 @@
 #!/bin/sh
 
-[ -n "$1" ] && cp "$1" "${XDG_DATA_HOME:-$HOME/.local/share}"/wallpaper."${1##*.}" && xwallpaper --zoom $HOME/.local/share/wallpaper.jpg
+[ -f "$1" ] && img="$1" || {
+    [ -d "$1" ] && dir="$1" || dir="$HOME"/media/wallpapers
+    img=$(get-rand-img "$dir")
+}
+cp "$img" "${XDG_DATA_HOME:-$HOME/.local/share}"/wallpaper."${img##*.}" &&
+    xwallpaper --zoom $HOME/.local/share/wallpaper.jpg
