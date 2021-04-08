@@ -1,3 +1,54 @@
 #!/bin/sh
-[ -f $1 ] && bat --color always --wrap never --pager never $1 --style plain ||
-    lsd --tree --depth=3 --color=always --icon=always $1
+
+disp_text(){
+    bat --color=always --wrap=never --pager=never --style=numbers,changes "$1"
+}
+
+disp_dir(){
+    lsd --tree --depth=1 --color=always --icon=always "$1"
+}
+
+disp_img(){
+    [ -p "$FIFO_UEBERZUG" ] && {
+        printf '{ "action": "add", "identifier": "%s", "path": "%s",' "$ID" "$5"
+        printf '"x": %d, "y": %d, "scaler": "fit_contain",' "$1" "$2"
+        printf '"width": %d, "height": %d }\n' "$3" "$4"
+    } > "$FIFO_UEBERZUG" || identify "$5"
+}
+
+pclear() {
+    [ -p "$FIFO_UEBERZUG" ] &&
+        printf '{ "action": "remove", "identifier": "%s" }\n' "$ID_UEBERZUG" > "$FIFO_UEBERZUG"
+}
+
+usage(){
+    echo "Usage: previewer [-h] file"
+}
+
+while getopts "h:c" option
+do
+	case "${option}" in
+		h)
+            usage
+            exit 0;;
+        c)
+            echo "OPTARG" | read -r X Y W H ;;
+		*)
+            echo "Error!" 1>&2
+            usage >&2
+            exit 1;;
+	esac
+done
+shift $((OPTIND-1))
+
+case "$1" in
+    (/*) FILE="$1" ;;
+    (*) FILE="$PWD/$1" ;;
+esac
+
+[ -d "$FILE" ] && disp_dir "$FILE" ||
+    case "${FILE##*.}" in
+        jpg|jpeg|png|svg) disp_img "$X" "$Y" "$W" "$H" ;;
+        *) pclear; disp_text "$FILE" ;;
+    esac
+

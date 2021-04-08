@@ -1,0 +1,21 @@
+#!/bin/sh
+
+stop_ueberzug() {
+    exec 3>&-
+    rm "$FIFO_UEBERZUG" > /dev/null 2>&1
+}
+
+if [ -z "$(whereis ueberzug | awk '{print $2}')" ]; then
+	sh -c "$@" && exit
+elif [ -z "$DISPLAY" ]; then
+	sh -c "$@" && exit
+else
+    trap stop_ueberzug EXIT QUIT INT TERM
+	[ ! -d "$HOME/.cache/$1" ] && mkdir --parents "$HOME/.cache/$1"
+	export ID_UEBERZUG="ueberzug-preview-$1-${PPID}"
+	export FIFO_UEBERZUG="$HOME/.cache/$1/ueberzug-${PPID}"
+    [ -e "$FIFO_UEBERZUG" ] || mkfifo "$FIFO_UEBERZUG" || exit 1
+    ueberzug layer --parser json --silent < "$FIFO_UEBERZUG" &
+    exec 3>"$FIFO_UEBERZUG"
+    sh -c "$@"
+fi

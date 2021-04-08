@@ -3,7 +3,7 @@
 num=1
 
 usage() {
-echo "Usage: get-rand-img [-n number_of_images] dir"
+echo "Usage: get-rand-img [-h] [-n number_of_images] dir"
 }
 
 while getopts "n:h" option
