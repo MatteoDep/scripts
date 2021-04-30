@@ -15,4 +15,4 @@ case $BUTTON in
 	6) "$TERMINAL" -e "$EDITOR" "$0" ;;
 esac
 
-cat /tmp/newsupdate 2>/dev/null || echo "$news$(newsboat -x print-unread | awk '{ if($1>0) print $1}')$(cat "${XDG_CONFIG_HOME:-$HOME/.config}"/newsboat/.update 2>/dev/null)"
+[ -e /tmp/newsupdate ] && cat /tmp/newsupdate || echo "$news$(newsboat -x print-unread | awk '{ if($1>0) print $1}')$(cat "${XDG_CONFIG_HOME:-$HOME/.config}"/newsboat/.update 2>/dev/null)"

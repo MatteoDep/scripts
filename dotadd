@@ -1,9 +1,12 @@
 #!/bin/sh
 
-[ -z "$1" ] && exit 1
-dotfiles_dir="$HOME/dotfiles"
-full=$(realpath "$1")
-relative="${full#"$PWD/"}"
-mkdir -p "$(dirname "$dotfiles_dir/$relative")"
-mv "$full" "$dotfiles_dir/$relative"
-ln -s "$dotfiles_dir/$relative" "$full"
+for i in "$@"; do
+    [ -n "$i" ] && {
+        dotfiles_dir="$HOME/dotfiles"
+        full=$(realpath "$i")
+        relative="${full#"$PWD/"}"
+        mkdir -p "$(dirname "$dotfiles_dir/$relative")"
+        mv "$full" "$dotfiles_dir/$relative"
+        ln -s "$dotfiles_dir/$relative" "$full"
+    }
+done

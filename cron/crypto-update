@@ -9,6 +9,7 @@ Cardano;ada;
 Polkadot;dot;
 Binance Coin;bnb;
 Monero;xmr;
+Chain Link;link;
 Basic Attention Token;bat;
 LBRY Credits;lbc;"
 
@@ -29,6 +30,7 @@ update() {
 
 echo "$refresh$(sb-crypto)" > /tmp/cryptoupdate
 pkill -RTMIN+13 "${STATUSBAR:-dwmblocks}"
+notify-send "updating!"
 
 [ ! -d "$dir" ] && mkdir -p "$dir"
 ping -q -c 1 example.org >/dev/null 2>&1 && update || notify-send "No Network!"

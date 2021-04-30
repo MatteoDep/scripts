@@ -7,7 +7,7 @@ refresh='累 '
 
 ping -q -c 1 example.org > /dev/null || exit
 
-pgrep -f newsboat$ && /usr/bin/xdotool key --window "$(/usr/bin/xdotool search --name newsboat)" R && exit
+pgrep -f newsboat$ && /usr/bin/xdotool key --window "$(/usr/bin/xdotool search --name newsboat)" R && exit # TODO name is actually st
 
 echo "$refresh$(sb-news)" > /tmp/newsupdate
 

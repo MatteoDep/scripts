@@ -36,4 +36,4 @@ $(awk -F';' '{print $1, $3 ":\n\t" $2}' "$dir"/*-price)
 	6) "$TERMINAL" -e "$EDITOR" "$0" ;;
 esac
 
-cat /tmp/cryptoupdate 2>/dev/null || printprices
+[ -e /tmp/cryptoupdate ] && cat /tmp/cryptoupdate || printprices

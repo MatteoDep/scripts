@@ -7,8 +7,8 @@
 # These are compatible with original fontpreview.
 SIZE=${FONTPREVIEW_SIZE:-800x800}
 FONT_SIZE=${FONTPREVIEW_FONT_SIZE:-72}
-BG_COLOR=${FONTPREVIEW_BG_COLOR:-#ffffff}
-FG_COLOR=${FONTPREVIEW_FG_COLOR:-#000000}
+BG_COLOR=${FONTPREVIEW_BG_COLOR:-#1D2021}
+FG_COLOR=${FONTPREVIEW_FG_COLOR:-#ffffff}
 TEXT_ALIGN=${FONTPREVIEW_TEXT_ALIGN:-center}
 PREVIEW_TEXT=${FONTPREVIEW_PREVIEW_TEXT:-"ABCDEFGHIJKLM\nNOPQRSTUVWXYZ\n\
 abcdefghijklm\nnopqrstuvwxyz\n1234567890\n!@#$\%^&*,.;:\n_-=+'\"|\\(){}[]"}
@@ -22,19 +22,6 @@ HEIGHT=$FZF_PREVIEW_LINES
 
 usage() {
     echo "Usage: fontpreview-ueberzug [-h] [-s FONT_SIZE] [-b BG] [-f FG] [-t TEXT]"
-}
-
-start_ueberzug() {
-    mkfifo "$FIFO" || exit 1
-    touch "$IMAGE" || exit 1
-    ueberzug layer --parser json --silent < "$FIFO" &
-    # https://github.com/seebye/ueberzug/issues/54#issuecomment-502869935
-    exec 3>"$FIFO"
-}
-
-stop_ueberzug() {
-    exec 3>&-
-    rm "$FIFO" "$IMAGE" > /dev/null 2>&1
 }
 
 preview() {
@@ -58,15 +45,14 @@ while getopts "a:hs:b:f:t:" arg; do
         b) BG_COLOR=$OPTARG;;
         f) FG_COLOR=$OPTARG;;
         t) PREVIEW_TEXT=$OPTARG;;
+        U) DUMP_PREVIEW=$OPTARG;;
         *) usage; exit ;;
     esac
 done
 shift $((OPTIND - 1))
 
+
 if [ "$#" = 0 ]; then
-    trap stop_ueberzug EXIT QUIT INT TERM
-    # Prepare
-    start_ueberzug
     # Export cli args as environment variables for preview command
     TEXT_ALIGN=$(echo "$TEXT_ALIGN" | sed 's/top/north/; s/bottom/south/; s/left/west/; s/right/east/')
     export FONTPREVIEW_TEXT_ALIGN="$TEXT_ALIGN"
@@ -75,12 +61,13 @@ if [ "$#" = 0 ]; then
     export FONTPREVIEW_FG_COLOR="$FG_COLOR"
     export FONTPREVIEW_PREVIEW_TEXT="$PREVIEW_TEXT"
     # The preview command runs this script again with an argument
-    fc-list -f "%{family}:%{style}:%{file}\n" |
+    CMD="fc-list -f \"%{family}:%{style}:%{file}\n\" |
     grep -i '\.\(ttc\|otf\|ttf\)$' | sort | uniq |
-    awk -F: '{split($1,a,","); split($2,b,","); printf("%s",a[1]);
-        if(b[1] != "") printf(":style=%s",b[1]); printf("\t%s\n",$3)}' |
-    fzf --with-nth 1 --delimiter "\t" --layout=reverse --preview "sh $0 {}" \
-        --preview-window "left:50%:noborder:wrap"
+    awk -F: '{split($1,a,\",\"); split($2,b,\",\"); printf(\"%s\",a[1]);
+        if(b[1] != \"\") printf(\":style=%s\",b[1]); printf(\"\t%s\n\",$3)}' |
+    fzf --with-nth 1 --delimiter \"\t\" --layout=reverse --preview \"sh -U ID $0 {}\" \\
+        --preview-window \"left:50%:noborder:wrap\""
+    ueberzug-wrap "$CMD"
 elif [ "$#" = 1 ]; then
-    [ -p "$FIFO" ] && preview "$1"
+    [ -n "$DUMP_PREVIEW" ] && [ -p "$FIFO" ] && preview "$1" || exit 1
 fi
