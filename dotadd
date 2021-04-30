@@ -2,9 +2,9 @@
 
 for i in "$@"; do
     [ -n "$i" ] && {
-        dotfiles_dir="$HOME/dotfiles"
+        dotfiles_dir="${DOTFILES_DIR:-"$HOME/.dotfiles"}"
         full=$(realpath "$i")
-        relative="${full#"$PWD/"}"
+        relative="${full#"$HOME/"}"
         mkdir -p "$(dirname "$dotfiles_dir/$relative")"
         mv "$full" "$dotfiles_dir/$relative"
         ln -s "$dotfiles_dir/$relative" "$full"
