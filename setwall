@@ -1,8 +1,20 @@
 #!/bin/sh
 
+wallfile="$HOME/.local/share/wallpaper"
+
+# just refresh wallpaper
+if [ "$1" = "--refresh" ]; then
+    img=$(cat "$wallfile")
+    printf "wallpaper --zoom $img"
+    xwallpaper --zoom "$img"
+    exit
+fi
+
+# get argument
 [ -f "$1" ] && img="$1" || {
     [ -d "$1" ] && dir="$1" || dir="$HOME"/media/wallpapers
     img=$(get-rand-img "$dir")
 }
-cp "$img" "${XDG_DATA_HOME:-$HOME/.local/share}"/wallpaper."${img##*.}" &&
-    xwallpaper --zoom $HOME/.local/share/wallpaper.jpg
+echo "$img"
+
+echo "$(realpath "$img")" >"$wallfile" && setwall --refresh
