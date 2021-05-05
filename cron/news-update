@@ -11,8 +11,6 @@ pgrep -f newsboat$ && /usr/bin/xdotool key --window "$(/usr/bin/xdotool search -
 
 echo "$refresh$(cat /tmp/newsupdate)" > /tmp/newsupdate
 pkill -RTMIN+6 "${STATUSBAR:-dwmblocks}"
-sleep 1
-rm -f /tmp/newsupdate
 
 /usr/bin/newsboat -x reload
 

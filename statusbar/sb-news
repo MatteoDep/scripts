@@ -19,4 +19,7 @@ case $BUTTON in
 	6) "$TERMINAL" -e "$EDITOR" "$0" ;;
 esac
 
-[ -e /tmp/newsupdate ] && cat /tmp/newsupdate || printnews | tee /tmp/newsupdate
+[ -e /tmp/newsupdate ] && {
+    cat /tmp/newsupdate
+    rm -f /tmp/newsupdate
+} || printnews | tee /tmp/newsupdate
