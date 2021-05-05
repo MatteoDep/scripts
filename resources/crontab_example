@@ -1,0 +1,5 @@
+!nolog(true)
+
+0 * * * * sudo /usr/bin/updatedb
+*/10 * * * * export DISPLAY=:0; $HOME/.local/bin/scripts/cron/crypto-update
+*/10 * * * * export DISPLAY=:0; $HOME/.local/bin/scripts/cron/news-update
