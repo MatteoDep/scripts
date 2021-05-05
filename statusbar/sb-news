@@ -5,6 +5,10 @@
 
 news='參 '
 
+printnews(){
+    echo "$news$(newsboat -x print-unread | awk '{ if($1>0) print $1}')$(cat "${XDG_CONFIG_HOME:-$HOME/.config}"/newsboat/.update 2>/dev/null)"
+}
+
 case $BUTTON in
     1) setsid "$TERMINAL" -e newsboat ;;
 	2) unset BUTTON; setsid -f news-update >/dev/null exit ;;
@@ -15,4 +19,4 @@ case $BUTTON in
 	6) "$TERMINAL" -e "$EDITOR" "$0" ;;
 esac
 
-[ -e /tmp/newsupdate ] && cat /tmp/newsupdate || echo "$news$(newsboat -x print-unread | awk '{ if($1>0) print $1}')$(cat "${XDG_CONFIG_HOME:-$HOME/.config}"/newsboat/.update 2>/dev/null)"
+[ -e /tmp/newsupdate ] && cat /tmp/newsupdate || printnews | tee /tmp/newsupdate

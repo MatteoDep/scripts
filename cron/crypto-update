@@ -17,7 +17,7 @@ LBRY Credits;lbc;"
 dir="${XDG_DATA_HOME:-$HOME/.local/share}/crypto-prices"
 interval="@7d"
 
-refresh='累 '
+refresh="累 "
 
 update() {
     rm -rf "${dir:?}/*"
@@ -28,12 +28,12 @@ update() {
 	done; [ -d "$dir" ] && touch "$dir"
 }
 
-echo "$refresh$(sb-crypto)" > /tmp/cryptoupdate
+echo "$refresh$(cat /tmp/cryptoupdate)" >/tmp/cryptoupdate
 pkill -RTMIN+13 "${STATUSBAR:-dwmblocks}"
-notify-send "updating!"
+sleep 1
+rm -f /tmp/cryptoupdate
 
 [ ! -d "$dir" ] && mkdir -p "$dir"
-ping -q -c 1 example.org >/dev/null 2>&1 && update || notify-send "No Network!"
-rm -f /tmp/cryptoupdate
+ping -q -c 1 example.org >/dev/null 2>&1 && update
 
 pkill -RTMIN+13 "${STATUSBAR:-dwmblocks}"

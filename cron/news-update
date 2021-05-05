@@ -9,11 +9,11 @@ ping -q -c 1 example.org > /dev/null || exit
 
 pgrep -f newsboat$ && /usr/bin/xdotool key --window "$(/usr/bin/xdotool search --name newsboat)" R && exit # TODO name is actually st
 
-echo "$refresh$(sb-news)" > /tmp/newsupdate
-
+echo "$refresh$(cat /tmp/newsupdate)" > /tmp/newsupdate
 pkill -RTMIN+6 "${STATUSBAR:-dwmblocks}"
+sleep 1
+rm -f /tmp/newsupdate
 
 /usr/bin/newsboat -x reload
-rm -f /tmp/newsupdate
 
 pkill -RTMIN+6 "${STATUSBAR:-dwmblocks}"
