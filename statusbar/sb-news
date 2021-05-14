@@ -11,7 +11,7 @@ printnews(){
 
 case $BUTTON in
     1) setsid "$TERMINAL" -e newsboat ;;
-	2) unset BUTTON; setsid -f news-update >/dev/null exit ;;
+    2) unset BUTTON; setsid -f news-update >/dev/null; exit ;;
     3) notify-send "News module" "\- Shows unread news items
 - Left click opens newsboat
 - Middle click syncs RSS feeds

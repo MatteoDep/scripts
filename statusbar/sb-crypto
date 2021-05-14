@@ -24,7 +24,7 @@ case $BUTTON in
 	1) cat "$dir"/*-chart > /tmp/cryptocharts
        setsid "$TERMINAL" -e less -SRf /tmp/cryptocharts
        rm /tmp/cryptocharts;;
-    2) unset BUTTON; setsid -f crypto-update >/dev/null exit ;;
+    2) unset BUTTON; setsid -f crypto-update >/dev/null; exit ;;
 	3) uptime="$(date -d "$(stat -c %x "$dir")" '+%D at %T' | sed "s|$(date '+%D')|Today|")"
         notify-send "Crypto-currency module" "\- Right check all crypto prices.
 - Middle click to update.
