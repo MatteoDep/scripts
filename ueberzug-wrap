@@ -11,9 +11,10 @@ elif [ -z "$DISPLAY" ]; then
 	sh -c "$@" && exit
 else
     trap stop_ueberzug EXIT QUIT INT TERM
-	[ ! -d "$HOME/.cache/$1" ] && mkdir --parents "$HOME/.cache/$1"
+    cachedir=$(echo "$HOME/.cache/$1" | sed 's/ //g')
+	[ ! -d "$cachedir" ] && mkdir --parents "$cachedir"
 	export ID_UEBERZUG="ueberzug-preview-$1-${PPID}"
-	export FIFO_UEBERZUG="$HOME/.cache/$1/ueberzug-${PPID}"
+	export FIFO_UEBERZUG="$cachedir/ueberzug-${PPID}"
     [ -e "$FIFO_UEBERZUG" ] || mkfifo "$FIFO_UEBERZUG" || exit 1
     ueberzug layer --parser json --silent < "$FIFO_UEBERZUG" &
     exec 3>"$FIFO_UEBERZUG"

@@ -13,6 +13,8 @@ bat1='  '
 bat2='  '
 bat3='  '
 bat4='  '
+tmpfilelow="/tmp/notifying-low-battery"
+tmpfilehigh="/tmp/notifying-high-battery"
 
 case $BUTTON in
 	3) notify-send "Battery module" "$notch: not charging
@@ -32,9 +34,17 @@ do
 	# Get its remaining capacity and charge status.
 	capacity=$(cat "$battery"/capacity 2>/dev/null) || break
 	status=$(sed "s/[Dd]ischarging//;s/[Nn]ot charging/$notch/;s/[Cc]harging/$charg/;s/[Uu]nknown/$stag/;s/[Ff]ull/$full/" "$battery"/status)
+    [ -f "$tmpfilelow" ] && [ "$status" = "$charg" ] && rm "$tmpfilelow"
+    [ -f "$tmpfilehigh" ] && [ -z "$status" ] && rm "$tmpfilehigh"
+    [ "$capacity" -ge 85 ] && [ "$status" = "$charg" ] && {
+        [ -f "$tmpfilehigh" ] || touch "$tmpfilehigh" &&
+        notify-send "Unplug Laptop!" "The battery is charged enough,
+                    charging further could decresase battery life."
+        }
 
     case $(( $capacity/25 )) in
-        0) cap=$bat0; [ -z "$status" ] && status=$warn && notify-send -u "critical" "LOW BATTERY";;
+        0) cap=$bat0; [ -z "$status" ] && status=$warn && [ -f "$tmpfilelow" ] &&
+            touch "$tmpfilelow" && notify-send -u "critical" "LOW BATTERY";;
         1) cap=$bat1;;
         2) cap=$bat2;;
         3) cap=$bat3;;
