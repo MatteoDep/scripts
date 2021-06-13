@@ -45,9 +45,11 @@ do
     }
 
     case $(( $capacity/25 )) in
-        0) cap=$bat0; [ -z "$status" ] && status=$warn && [ -f "$tmpfilelow" ] || {
-                touch "$tmpfilelow"
-                notify-send -u "critical" "LOW BATTERY"
+        0) cap=$bat0; [ -z "$status" ] && {
+            status=$warn && [ -f "$tmpfilelow" ] || {
+                    touch "$tmpfilelow"
+                    notify-send -u "critical" "LOW BATTERY"
+                }
             };;
         1) cap=$bat1;;
         2) cap=$bat2;;
