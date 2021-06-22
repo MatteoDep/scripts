@@ -18,5 +18,5 @@ else
     [ -e "$FIFO_UEBERZUG" ] || mkfifo "$FIFO_UEBERZUG" || exit 1
     ueberzug layer --parser json --silent < "$FIFO_UEBERZUG" &
     exec 3>"$FIFO_UEBERZUG"
-    sh -c "$@"
+    sh -c "$*"
 fi
