@@ -6,20 +6,15 @@ usage() {
 echo "Usage: fzfmenu [-h] [-p prompt]"
 }
 
-while getopts "p:h" option
+while getopts "m:p:h" option
 do
 	case "${option}" in
-		p)
-            args="$args --prompt=$OPTARG";;
-		h)
-            usage
-            exit 0;;
-		*)
-            echo "Error!" 1>&2
-            usage >&2
-            exit 1;;
+		p) args="$args --prompt=\'$OPTARG\'";;
+		h) usage; exit 0;;
+		*) args="$args -$option $OPTARG";;
 	esac
 done
 shift $((OPTIND-1))
+args="$args $*"
 
-$TERMINAL -t fzfmenu -e sh -c "ueberzug-wrap fzf $args $* </proc/$$/fd/0 >/proc/$$/fd/1"
+$TERMINAL -t fzfmenu -e sh -c "ueberzug-wrap fzf $args </proc/$$/fd/0 >/proc/$$/fd/1"
