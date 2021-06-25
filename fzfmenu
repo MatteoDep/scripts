@@ -1,17 +1,31 @@
 #!/bin/sh
+# use fzf as it was dmenu or rofi.
+# multi selection is enabled by default.
+# TODO:
+# - monitor support with xdotool or wmctrl
+# - bottom deleting --reverse
+# - lines using terminal geometry options
+# - support for font and color options (if achievable)
 
-args="--reverse --no-info"
+args="--reverse --no-info --multi"
 
 usage() {
 echo "Usage: fzfmenu [-h] [-p prompt]"
 }
 
-while getopts "m:p:h" option
+while getopts "bfivl:m:p:h" option
 do
 	case "${option}" in
+        b) ;;
+        f) ;;
+		i) args="$args -i";;
+        v) fzf -v; exit 0;;
+        l) ;;
+        m) ;;
 		p) args="$args --prompt=\'$OPTARG\'";;
 		h) usage; exit 0;;
-		*) args="$args -$option $OPTARG";;
+		*) echo "unsupported option $option. If it is a fzf option please use the long format."
+            usage; exit 1;;
 	esac
 done
 shift $((OPTIND-1))
