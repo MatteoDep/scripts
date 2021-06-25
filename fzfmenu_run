@@ -1,0 +1,11 @@
+#!/bin/env bash
+# TODO only desktop by default and shell option
+
+get_executables(){
+    compgen -c | sort -u
+}
+get_desktop_apps(){
+    ls /usr/share/applications | cut -d'.' -f1 | sort -u
+}
+
+get_executables | dmenu "$@" | ${SHELL:-"/bin/sh"} &
