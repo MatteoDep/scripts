@@ -7,7 +7,7 @@
 # - lines using terminal geometry options
 # - support for font and color options (if achievable)
 
-args="--reverse --no-info --multi"
+args="--reverse --no-info --multi --print-query"
 
 usage() {
 echo "Usage: fzfmenu [-h] [-p prompt]"
@@ -31,4 +31,10 @@ done
 shift $((OPTIND-1))
 args="$args $*"
 
-$TERMINAL -t fzfmenu -e sh -c "ueberzug-wrap fzf $args </proc/$$/fd/0 >/proc/$$/fd/1"
+$TERMINAL -t fzfmenu -e sh -c 'out=$(ueberzug-wrap fzf '"$args"' </proc/'"$$"'/fd/0)
+lines=$(echo "$out" | wc -l)
+if [ "$lines" -le 1 ]; then
+    echo "$out" >/proc/'"$$"'/fd/1
+else
+    echo "$out" | sed -n '"'"'2,$p'"'"' >/proc/'"$$"'/fd/1
+fi'
