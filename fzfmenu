@@ -10,7 +10,7 @@
 args="--reverse --no-info --multi --print-query"
 
 usage() {
-echo "Usage: fzfmenu [-h] [-p prompt]"
+echo "Usage: see dmenu and fzf. Use long options for fzf."
 }
 
 while getopts "bfivl:m:p:h" option
@@ -31,7 +31,7 @@ done
 shift $((OPTIND-1))
 args="$args $*"
 
-$TERMINAL -t fzfmenu -e sh -c 'out=$(ueberzug-wrap fzf '"$args"' </proc/'"$$"'/fd/0)
+$TERMINAL -t 'fzfmenu' -e sh -c 'out=$(ueberzug-wrap fzf '"$args"' </proc/'"$$"'/fd/0)
 lines=$(echo "$out" | wc -l)
 if [ "$lines" -le 1 ]; then
     echo "$out" >/proc/'"$$"'/fd/1

@@ -40,7 +40,7 @@ do
         [ -f "$tmpfilehigh" ] || {
             touch "$tmpfilehigh"
             notify-send "Unplug Laptop!" "The battery is charged enough,
-                        charging further could decresase battery life."
+charging further could decresase battery life."
         }
     }
 
