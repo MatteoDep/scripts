@@ -21,18 +21,24 @@ usage() {
 }
 
 if [ "$1" = "--parent-proc-id" ]; then
+    parent_proc_id="$2"
+    args=$(echo "$*" | sed 's/--parent-proc-id [0-9]* \(.*\)/\1/')
+    if [ "$3" = "--lines" ]; then
+        lines="$4"
+        args=$(echo "$args" | sed 's/--lines [0-9]* \(.*\)/\1/')
+    else
+        lines=$(cat /tmp/fzfmenu-input | wc -l)
+        [ $lines -gt $maxlines ] && lines=$maxlines
+    fi
 
     wid=$(xdotool getactivewindow)
     xdotool windowmove "$wid" $x $y
-    lines=$(cat /tmp/fzfmenu-input | wc -l)
-    [ $lines -gt $maxlines ] && lines=$maxlines
     h=$((($lines+1) * $fontsize * 17/10))
     xdotool windowsize "$wid" $w $h
 
-    args=$(echo "$*" | sed 's/--parent-proc-id [0-9]* \(.*\)/\1/')
     out=$(ueberzug-wrap fzf "$args" </tmp/fzfmenu-input)
-    lines=$(echo "$out" | wc -l)
-    if [ "$lines" -le 1 ]; then
+    choices_num=$(echo "$out" | wc -l)
+    if [ "$choices_num" -le 1 ]; then
         echo "$out" >/proc/"$parent_proc_id"/fd/1
     else
         echo "$out" | sed -n '2,$p' >/proc/"$parent_proc_id"/fd/1
@@ -41,12 +47,13 @@ else
     while getopts "bfivl:m:p:L:h" option
     do
         case "${option}" in
-            [bflm]) ;;
+            [bfm]) ;;
             i) args="-i $args";;
             v) fzf -v; exit 0;;
             p) args="$args --prompt='$OPTARG'";;
-            h) usage; exit 0;;
+            l) args="--lines $OPTARG $args";;
             L) args="$args $OPTARG";;
+            h) usage; exit 0;;
             *) echo "unsupported option $option. If it is a fzf option please use the long format."
                 usage; exit 1;;
         esac
