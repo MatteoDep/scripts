@@ -29,9 +29,9 @@ update() {
 }
 
 echo "$refresh$(cat /tmp/cryptoupdate)" >/tmp/cryptoupdate
-pkill -RTMIN+13 "${STATUSBAR:-dwmblocks}"
+pkill -RTMIN+13 "${STATUSBAR:-statusblocks}"
 
 [ ! -d "$dir" ] && mkdir -p "$dir"
 ping -q -c 1 example.org >/dev/null 2>&1 && update
 
-pkill -RTMIN+13 "${STATUSBAR:-dwmblocks}"
+pkill -RTMIN+13 "${STATUSBAR:-statusblocks}"
