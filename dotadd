@@ -1,8 +1,9 @@
 #!/bin/sh
 
+dotfiles_dir="${DOTFILES_DIR:-"$HOME/.dotfiles"}"
+
 for i in "$@"; do
     [ -n "$i" ] && {
-        dotfiles_dir="${DOTFILES_DIR:-"$HOME/.dotfiles"}"
         full=$(realpath "$i")
         relative="${full#"$HOME/"}"
         mkdir -p "$(dirname "$dotfiles_dir/$relative")"

@@ -1,0 +1,17 @@
+#!/bin/sh
+
+dotfiles_dir="${DOTFILES_DIR:-"$HOME/.dotfiles"}"
+trashdir="$XDG_DATA_HOME"/trash
+
+for i in "$@"; do
+    [ -n "$i" ] && {
+        full=$(realpath -s "$i")
+        relative="${full#"$HOME/"}"
+        if [ -e "$dotfiles_dir/$relative" ]; then
+            rm -r "$full"
+            mv "$dotfiles_dir/$relative" "$full"
+        else
+            echo "Skipping $i as is not synched!"
+        fi
+    }
+done
