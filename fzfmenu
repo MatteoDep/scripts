@@ -11,10 +11,10 @@ y=20
 w="100%"
 maxlines=32
 fontsize=11
-args="--reverse --no-info --multi --print-query"
-usage="Usage: fzf script which replicates dmenu behaviour addfzf features.
+args='--reverse --no-info --bind "tab:clear-query+execute-silent(xdotool type --delay 0 {})" --print-query'
+usage='Usage: fzf script which replicates dmenu behaviour addfzf features.
 use short dmenu options in the usual way.
-fzf options can be using -L '--long-opt-1 --long-opt-2'"
+fzf options can be using -L "--long-opt-1 --long-opt-2"'
 
 usage() {
     echo "$usage"
