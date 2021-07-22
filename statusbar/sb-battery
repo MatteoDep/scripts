@@ -13,20 +13,13 @@ bat1=''
 bat2=''
 bat3=''
 bat4=''
+cmd4='%{A4:backlight -i 2:}'
+cmd5='%{A5:backlight -d 2:}'
+closecmd='%{A}'
+
 tmpfilelow="/tmp/notifying-low-battery"
 tmpfilehigh="/tmp/notifying-high-battery"
 
-case $BUTTON in
-	3) notify-send "Battery module" "$notch: not charging
-$stag: stagnant charge
-$charg: charging
-$full: charged
-$warn: battery very low!
-- Scroll to change adjust backlight." ;;
-	4) backlight -i 10 ;;
-	5) backlight -d 10 ;;
-	6) "$TERMINAL" -e "$EDITOR" "$0" ;;
-esac
 
 # Loop through all attached batteries.
 for battery in /sys/class/power_supply/BAT?
@@ -57,5 +50,5 @@ charging further could decresase battery life."
         4) cap=$bat4;;
     esac
 
-	echo "$status$cap$capacity%"
+	echo "$cmd4$cmd5$status$cap$capacity%%$closecmd$closecmd"
 done

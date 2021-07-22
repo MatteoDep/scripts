@@ -1,0 +1,11 @@
+#!/bin/sh
+
+colors=$(xrdb -query)
+fgcol=$(echo "$colors" | awk '/fadeColor/ {print $2}')
+bgcol=$(echo "$colors" | awk '/foreground/ {print $2}')
+
+wtitle=$(xdotool getwindowname "$(xdotool getwindowfocus)")
+[ "$(echo "$wtitle" | cut -c21)" ] && wtitle=$(echo "$wtitle" | cut -c1-20)"..."
+
+
+echo "%{F$fgcol}%{B$bgcol}%{R}$wtitle%{R}%{F-}%{B-}"

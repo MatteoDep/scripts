@@ -3,21 +3,17 @@
 # Displays number of unread news items and an loading icon if updating.
 # When clicked, brings up `newsboat`.
 
-news='參'
+icon='參'
+cmd1='%{A1:setsid -f "$TERMINAL" --class floatterm -e newsboat:}'
+cmd3='%{A3:setsid -f news-update:}'
+closecmd='%{A}'
+
+news=$(newsboat -x print-unread | awk '{ if($1>0) print $1}')
 
 printnews(){
-    echo "$news$(newsboat -x print-unread | awk '{ if($1>0) print $1}')$(cat "${XDG_CONFIG_HOME:-$HOME/.config}"/newsboat/.update 2>/dev/null)"
+    echo "$cmd1$cmd3$icon$news$closecmd$closecmd"
 }
 
-case $BUTTON in
-    1) setsid "$TERMINAL" -e newsboat ;;
-    2) unset BUTTON; setsid -f news-update >/dev/null; exit ;;
-    3) notify-send "News module" "\- Shows unread news items
-- Left click opens newsboat
-- Middle click syncs RSS feeds
-<b>Note:</b> Only one instance of newsboat (including updates) may be running at a time." ;;
-	6) "$TERMINAL" -e "$EDITOR" "$0" ;;
-esac
 
 [ -e /tmp/newsupdate ] && {
     cat /tmp/newsupdate

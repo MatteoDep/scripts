@@ -1,27 +1,25 @@
 #! /bin/sh
-#
-# Example panel for lemonbar
 
-COLOR_MONITOR_FG="#8dbcdf"
-COLOR_MONITOR_BG="#333232"
-COLOR_FOCUSED_MONITOR_FG="#b1d0e8"
-COLOR_FOCUSED_MONITOR_BG="#144b6c"
-COLOR_FREE_FG="#737171"
-COLOR_FREE_BG="#333232"
-COLOR_FOCUSED_FREE_FG="#000000"
-COLOR_FOCUSED_FREE_BG="#504e4e"
-COLOR_OCCUPIED_FG="#a7a5a5"
-COLOR_OCCUPIED_BG="#333232"
-COLOR_FOCUSED_OCCUPIED_FG="#d6d3d2"
-COLOR_FOCUSED_OCCUPIED_BG="#504e4e"
-COLOR_URGENT_FG="#f15d66"
-COLOR_URGENT_BG="#333232"
-COLOR_FOCUSED_URGENT_FG="#501d1f"
-COLOR_FOCUSED_URGENT_BG="#d5443e"
-COLOR_STATE_FG="#89b09c"
-COLOR_STATE_BG="#333232"
-COLOR_TITLE_FG="#a8a2c0"
-COLOR_TITLE_BG="#333232"
+colors=$(xrdb -query)
+
+COLOR_MONITOR_FG=$(echo "$colors" | awk '/foreground/ {print $2}')
+COLOR_MONITOR_BG=$(echo "$colors" | awk '/background/ {print $2}')
+COLOR_FOCUSED_MONITOR_FG=$(echo "$colors" | awk '/color15/ {print $2}')
+COLOR_FOCUSED_MONITOR_BG=$(echo "$colors" | awk '/fadeColor/ {print $2}')
+COLOR_FREE_FG=$(echo "$colors" | awk '/foreground/ {print $2}')
+COLOR_FREE_BG=$(echo "$colors" | awk '/color5/ {print $2}')
+COLOR_FOCUSED_FREE_FG=$(echo "$colors" | awk '/color15/ {print $2}')
+COLOR_FOCUSED_FREE_BG=$(echo "$colors" | awk '/fadeColor/ {print $2}')
+COLOR_OCCUPIED_FG=$(echo "$colors" | awk '/foreground/ {print $2}')
+COLOR_OCCUPIED_BG=$(echo "$colors" | awk '/background/ {print $2}')
+COLOR_FOCUSED_OCCUPIED_FG=$(echo "$colors" | awk '/color15/ {print $2}')
+COLOR_FOCUSED_OCCUPIED_BG=$(echo "$colors" | awk '/color4/ {print $2}')
+COLOR_URGENT_FG=$(echo "$colors" | awk '/color15/ {print $2}')
+COLOR_URGENT_BG=$(echo "$colors" | awk '/color1/ {print $2}')
+COLOR_FOCUSED_URGENT_FG=$(echo "$colors" | awk '/foreground/ {print $2}')
+COLOR_FOCUSED_URGENT_BG=$(echo "$colors" | awk '/color1/ {print $2}')
+COLOR_LAYOUT_FG=$(echo "$colors" | awk '/color2/ {print $2}')
+COLOR_LAYOUT_BG=$(echo "$colors" | awk '/background/ {print $2}')
 
 num_mon=$(bspc query -M | wc -l)
 line=$(bspc subscribe -c 1 report)
@@ -114,9 +112,9 @@ case $line in
                     esac
                     wm="${wm}%{F${FG}}%{B${BG}}%{U${UL}}%{+u}%{A:bspc desktop -f ${name}:} ${name} %{A}%{B-}%{F-}%{-u}"
                     ;;
-                [LG]*)
-                    # layout and flags
-                    wm="${wm}%{F$COLOR_STATE_FG}%{B$COLOR_STATE_BG} ${name} %{B-}%{F-}"
+                L*)
+                    # layout
+                    wm="${wm}%{F$COLOR_LAYOUT_FG}%{B$COLOR_LAYOUT_BG} ${name} %{B-}%{F-}"
                     ;;
             esac
             shift

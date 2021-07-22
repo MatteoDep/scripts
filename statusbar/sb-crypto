@@ -9,7 +9,12 @@ coins="btc eth"
 # Directory where currency info is stored.
 dir="${XDG_DATA_HOME:-$HOME/.local/share}/crypto-prices"
 
+cmd1='%{A1:setsid -f "$TERMINAL" --class floatterm -e cryptoget:}'
+cmd3='%{A3:setsid -f crypto-update:}'
+closecmd='%{A}'
+
 printprices() { # Print/format all prices
+    echo -n "$cmd1$cmd3"
 	for coin in $coins; do
         coinfile="$dir/$coin-price"
 		[ -f "$coinfile" ] || continue
@@ -17,24 +22,9 @@ printprices() { # Print/format all prices
             read icon value ref
             printf "%s%.2f%s " $icon $value $ref
         }
-	done | sed 's/ $/\n/'
+	done | sed 's/ $//'
+    echo "$closecmd$closecmd"
 	}
-
-case $BUTTON in
-	1) cat "$dir"/*-chart > /tmp/cryptocharts
-       setsid "$TERMINAL" -e less -SRf /tmp/cryptocharts
-       rm /tmp/cryptocharts;;
-    2) unset BUTTON; setsid -f crypto-update >/dev/null; exit ;;
-	3) uptime="$(date -d "$(stat -c %x "$dir")" '+%D at %T' | sed "s|$(date '+%D')|Today|")"
-        notify-send "Crypto-currency module" "\- Right check all crypto prices.
-- Middle click to update.
-- Right click to see 7 days charts.
-- Manually add/remove currencies to list in the script.
-Exact prices:
-$(awk -F';' '{print $1, $3 ":\n\t" $2}' "$dir"/*-price)
-<b>Last updated:</b>$uptime" ;;
-	6) "$TERMINAL" -e "$EDITOR" "$0" ;;
-esac
 
 [ -e /tmp/cryptoupdate ] && {
     cat /tmp/cryptoupdate

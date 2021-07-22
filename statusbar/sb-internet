@@ -8,19 +8,13 @@ ethup=''
 wifidown='睊'
 ethdown=''
 
-case $BUTTON in
-	1) "$TERMINAL" -e nmtui; pkill -RTMIN+4 dwmblocks ;;
-	3) notify-send "Internet module" "\- Click to connect
-$wifidown: looking for wifi connection
-$wifiup:wifi connection with quality
-$ethdow no ethernet
-$ethupthernet working" ;;
-	6) "$TERMINAL" -e "$EDITOR" "$0" ;;
-esac
+cmd1='%{A1:setsid -f "$TERMINAL" --class floatterm -e connmanctl; pkill -RTMIN+4 dwmblocks:}'
+closecmd='%{A}'
 
 case "$(cat /sys/class/net/w*/operstate 2>/dev/null)" in
-	down) wifistat=$wifidown ;;
-	up) wifistat="$(awk '/^\s*w/ { print "wifiup" int($3 * 100 / 70) "%" }' /proc/net/wireless | sed "s/wifiup/$wifiup/")" ;;
+	down) wifi=$wifidown ;;
+	up) wifi="$(awk '/^\s*w/ { print "wifiup" int($3 * 100 / 70) "%" }' /proc/net/wireless | sed "s/wifiup/$wifiup/")" ;;
 esac
+eth=$(sed "s/down/$ethdown/;s/up/$ethup/" /sys/class/net/e*/operstate 2>/dev/null)
 
-printf "%s%s\n" "$wifistat" "$(sed "s/down/$ethdown/;s/up/$ethup/" /sys/class/net/e*/operstate 2>/dev/null)"
+echo "$cmd1$wifi$eth$closecmd"

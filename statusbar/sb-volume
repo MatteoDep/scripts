@@ -6,27 +6,24 @@ high="墳"
 medium="奔"
 low="奄"
 
-case $BUTTON in
-	1) setsid -f "$TERMINAL" -e pulsemixer ;;
-	2) pamixer -t ;;
-	4) pamixer --allow-boost -i 1 ;;
-	5) pamixer --allow-boost -d 1 ;;
-	3) notify-send "Volume module" "\- Shows volume, $muted if muted.
-- Middle click to mute.
-- Scroll to change." ;;
-	6) "$TERMINAL" -e "$EDITOR" "$0" ;;
-esac
+cmd1='%{A1:setsid -f "$TERMINAL" --class floatterm -e pulsemixer; until pidof pulsemixer; do pkill -RTMIN+10 statusblocks; sleep 1; done:}'
+cmd3='%{A3:pamixer -t; pkill -RTMIN+10 statusblocks:}'
+cmd4='%{A4:pamixer --allow-boost -i 2; pkill -RTMIN+10 statusblocks:}'
+cmd5='%{A5:pamixer --allow-boost -d 2; pkill -RTMIN+10 statusblocks:}'
+closecmd='%{A}'
 
-[ $(pamixer --get-mute) = true ] && echo $muted && exit
-
-vol="$(pamixer --get-volume)"
-
-if [ "$vol" -gt "70" ]; then
-	icon="$high"
-elif [ "$vol" -lt "30" ]; then
-	icon="$low"
+if [ $(pamixer --get-mute) = true ]; then
+    vol=$muted
 else
-	icon="$medium"
+    vol="$(pamixer --get-volume)"
+    if [ "$vol" -gt "70" ]; then
+        icon="$high"
+    elif [ "$vol" -lt "30" ]; then
+        icon="$low"
+    else
+        icon="$medium"
+    fi
+    vol="$vol"'%%'
 fi
 
-echo "$icon$vol%"
+echo "$cmd1$cmd3$cmd4$cmd5$icon$vol$closecmd$closecmd$closecmd$closecmd"
