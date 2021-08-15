@@ -11,7 +11,18 @@ y=20
 w="100%"
 maxlines=32
 fontsize=11
-args='--reverse --no-info --bind "tab:clear-query+execute-silent(xdotool type --delay 0 {})" --print-query'
+marginx=0
+marginy=0
+paddingx=0
+paddingy=0
+terminal_paddingy=2
+pt2pix=1.67272727272727272727273
+args="--reverse \
+    --no-info \
+    --bind 'tab:clear-query+execute-silent(xdotool type --delay 0 {})' \
+    --print-query
+    --margin $marginx,$marginy \
+    --padding $paddingx,$paddingy"
 usage='Usage: fzf script which replicates dmenu behaviour addfzf features.
 use short dmenu options in the usual way.
 fzf options can be using -L "--long-opt-1 --long-opt-2"'
@@ -33,7 +44,8 @@ if [ "$1" = "--parent-proc-id" ]; then
 
     wid=$(xdotool getactivewindow)
     xdotool windowmove "$wid" $x $y
-    h=$((($lines+1) * $fontsize * 17/10))
+    h=$(echo "($lines+1+$marginy+$paddingy)*$fontsize*$pt2pix \
+        + $terminal_paddingy" | bc)
     xdotool windowsize "$wid" $w $h
 
     out=$(ueberzug-wrap fzf "$args" </tmp/fzfmenu-input)

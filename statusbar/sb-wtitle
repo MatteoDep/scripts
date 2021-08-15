@@ -1,7 +1,7 @@
 #!/bin/sh
 
 colors=$(xrdb -query)
-fgcol=$(echo "$colors" | awk '/fadeColor/ {print $2}')
+fgcol=$(echo "$colors" | awk '/background/ {print $2}')
 bgcol=$(echo "$colors" | awk '/foreground/ {print $2}')
 
 wtitle=$(xdotool getwindowname "$(xdotool getwindowfocus)")
