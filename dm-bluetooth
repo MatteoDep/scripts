@@ -19,7 +19,7 @@ get_devices() {
 
 get_new_devices() {
     wait_time="5"
-    notify "  scanning ...\nplease wait ${wait_time}s"
+    notify "ﴽ  scanning ...\nplease wait ${wait_time}s"
     echo -e "$(timeout "$wait_time" bluetoothctl -- scan on)" | grep 'NEW' | cut -d' ' -f3-
     printf 'scan off\n' | _bluetoothctl 2>&1 >/dev/null
 }
@@ -48,7 +48,7 @@ connect_disconnect() {
     devices=$(get_devices)
     scan="scan for new device"
     options=$(printf "$devices" | cut -d' ' -f2-; echo "$scan")
-    name=$(printf "$options" | dmenu -p "choose device" -l 10)
+    name=$(printf "$options" | dmenu -p "choose device: " -l 10)
     [ -z $name ] && exit 0 || printf 'power on\n' | _bluetoothctl
 
     # scan new device
@@ -57,7 +57,7 @@ connect_disconnect() {
         while [ "$gotit" -eq "0" ]; do
             devices=$(get_new_devices)
             options=$(echo "retry"; printf "$devices" | cut -d' ' -f2-)
-            name=$(printf "$options" | dmenu -p "choose device" -l 10)
+            name=$(printf "$options" | dmenu -p "choose device: " -l 10)
             [ -z $name ] && echo "HEY" && {power_off; exit 1}
             [ "$name" = "retry" ] || gotit=1
         done
@@ -112,6 +112,6 @@ modes="connect
 disconnect
 power off"
 
-choice=$(printf "$modes" | dmenu -l 10 -p "choose action")
+choice=$(printf "$modes" | dmenu -l 10 -p "choose action: ")
 
 execute_mode "$choice"

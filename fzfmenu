@@ -16,7 +16,7 @@ marginy=0
 paddingx=0
 paddingy=0
 terminal_paddingy=2
-pt2pix=1.67272727272727272727273
+pt2pix=1.6727272727272727272727273
 args="--reverse \
     --no-info \
     --bind 'tab:clear-query+execute-silent(xdotool type --delay 0 {})' \
@@ -26,6 +26,7 @@ args="--reverse \
 usage='Usage: fzf script which replicates dmenu behaviour addfzf features.
 use short dmenu options in the usual way.
 fzf options can be using -L "--long-opt-1 --long-opt-2"'
+tmpfile=/tmp/fzfmenu-input
 
 usage() {
     echo "$usage"
@@ -35,20 +36,21 @@ if [ "$1" = "--parent-proc-id" ]; then
     parent_proc_id="$2"
     args=$(echo "$*" | sed 's/--parent-proc-id [0-9]* \(.*\)/\1/')
     if [ "$3" = "--lines" ]; then
-        lines="$4"
+        maxlines="$4"
         args=$(echo "$args" | sed 's/--lines [0-9]* \(.*\)/\1/')
-    else
-        lines=$(cat /tmp/fzfmenu-input | wc -l)
-        [ $lines -gt $maxlines ] && lines=$maxlines
     fi
+    [ "$(tail -c 1 "$tmpfile")" != "" ] && echo "" >> "$tmpfile"
+    lines=$(cat "$tmpfile" | wc -l)
+    [ $lines -gt $maxlines ] && lines=$maxlines
+    notify-send "$lines"
 
     wid=$(xdotool getactivewindow)
     xdotool windowmove "$wid" $x $y
-    h=$(echo "($lines+1+$marginy+$paddingy)*$fontsize*$pt2pix \
-        + $terminal_paddingy" | bc)
+    h=$(echo "($lines+1+2*$marginy+2*$paddingy)*$fontsize*$pt2pix \
+        + 2*$terminal_paddingy" | bc)
     xdotool windowsize "$wid" $w $h
 
-    out=$(ueberzug-wrap fzf "$args" </tmp/fzfmenu-input)
+    out=$(ueberzug-wrap fzf "$args" <"$tmpfile")
     choices_num=$(echo "$out" | wc -l)
     if [ "$choices_num" -le 1 ]; then
         echo "$out" >/proc/"$parent_proc_id"/fd/1
@@ -72,6 +74,6 @@ else
     done
     shift $((OPTIND-1))
 
-    cat /proc/"$$"/fd/0 > /tmp/fzfmenu-input
+    cat /proc/"$$"/fd/0 > "$tmpfile"
     $TERMINAL --class 'floatterm' -t 'fzfmenu' -e fzfmenu --parent-proc-id "$$" $args
 fi
