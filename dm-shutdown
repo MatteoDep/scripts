@@ -9,7 +9,7 @@ choice=$(echo "$options" | dmenu -p "select: ")
 
 case "$choice" in
     "lock") lock;;
-    "suspend") lock & loginctl suspend;;
+    "suspend") loginctl suspend;;
     "poweroff") loginctl poweroff;;
     "reboot") loginctl reboot;;
     *) exit
