@@ -8,8 +8,8 @@ reboot"
 choice=$(echo "$options" | dmenu -p "select: ")
 
 case "$choice" in
-    "lock") slock;;
-    "suspend") slock & loginctl suspend;;
+    "lock") lock;;
+    "suspend") lock & loginctl suspend;;
     "poweroff") loginctl poweroff;;
     "reboot") loginctl reboot;;
     *) exit
