@@ -9,25 +9,14 @@ coins="btc eth"
 # Directory where currency info is stored.
 dir="${XDG_DATA_HOME:-$HOME/.local/share}/crypto-prices"
 
-cmd1='%{A1:setsid -f "$TERMINAL" --class floatterm -e cryptoget:}'
-cmd3='%{A3:setsid -f crypto-update:}'
+cmd1='%{A1:setsid -f "$TERMINAL" --class floatterm -e getcrypto:}'
+cmd3='%{A3:pkill -RTMIN+13 statusblocks:}'
 closecmd='%{A}'
 
-printprices() { # Print/format all prices
-    echo -n "$cmd1$cmd3"
-	for coin in $coins; do
-        coinfile="$dir/$coin-price"
-		[ -f "$coinfile" ] || continue
-        sed 's/^\(.\);\([0-9\.]*\)\(.\);.*/\1 \2 \3/' $coinfile | {
-            read icon value ref
-            printf "%s%.2f%s " $icon $value $ref
-        }
-	done | sed 's/ $//'
-    echo "$closecmd$closecmd"
-	}
+printcrypto(){
+    echo "$cmd1$cmd3$prices$closecmd$closecmd"
+}
 
-[ -e /tmp/cryptoupdate ] && {
-    cat /tmp/cryptoupdate
-    rm -f /tmp/cryptoupdate
-} || printprices | tee /tmp/cryptoupdate
+prices=$(getcrypto -1b "$coins")
 
+printcrypto

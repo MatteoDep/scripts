@@ -1,8 +1,0 @@
-#!/bin/sh
-
-# Directory where currency info is stored.
-dir="${XDG_DATA_HOME:-$HOME/.local/share}/crypto-prices"
-
-cat "$dir"/*-chart > /tmp/cryptocharts
-less -SRf /tmp/cryptocharts
-rm /tmp/cryptocharts

@@ -1,7 +1,0 @@
-#!/bin/sh
-case "$BROWSER" in
-    'qutebrowser') opts="--target window";;
-    *) opts="--new-window";;
-esac
-
-$BROWSER $opts /home/matteo/.local/src/via-2.0.10/via.html

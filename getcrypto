@@ -1,0 +1,87 @@
+#!/bin/sh
+
+# icons file
+iconsfile="${XDG_DATA_HOME:-$HOME/.local/share}/icons"
+
+# temporary file
+tmpfile=/tmp/cryptocharts
+
+# reference currency
+ref="usd"
+
+# defaults
+coins="btc eth ada dot bnb xmr link bat lbc"
+interval="7d"
+bare=""
+onlyprice=""
+
+usage(){
+    echo "cryptoget [ -1b[ -i <interval>[ -r <refcrypto>]] <crypto1> <crypto2> ..."
+    echo "1   print only current price."
+    echo "b   in combination with 1 formats in a single line and without spaces between icon and price."
+    echo "interval examples: '3d', '4w', 'march', '26-april-2020', ..."
+    echo "    s   Second
+    m   Minute
+    h   Hour
+    d   Day (24 hours)
+    w   Week
+    M   Month (30 days)
+    y   Year (365 days)"
+    echo "crypto examples: 'btc', 'eth', 'xmr', 'ada', ..."
+}
+getsym(){
+    case "$1" in
+        'usd') echo '$';;
+        'eur') echo '€';;
+        *) awk '/ci-'"$1"';/ {print $1}' "$iconsfile";;
+    esac
+}
+
+while getopts "h1bi:r:" option
+do
+    case "$option" in
+        i) interval="$OPTARG";;
+        r) ref="$OPTARG";;
+        1) onlyprice="true";;
+        b) bare="true";;
+        h) usage; exit 0;;
+        *) echo "unsupported option $option."
+            usage; exit 1;;
+    esac
+done
+shift $((OPTIND-1))
+
+# delete tmpfile if present
+[ -f "$tmpfile" ] && rm "$tmpfile"
+
+[ "$*" ] && coins="$*"
+argnum=$(echo "$coins" | wc -w)
+count=0
+
+for coin in $coins; do
+    if [ "$onlyprice" ]; then
+        count=$((count + 1))
+        price=$(curl -s "$ref".rate.sx/1"$coin")
+        scale=$(echo "res=2.5 - (l($price)/l(10)); scale=0; res/1" | bc -l)
+        if [ "$scale" -gt 0 ]; then
+            format='%.'"$scale"'f'
+        else
+            format="%.0f"
+        fi
+        refsym=$(getsym "$ref")
+        coinsym=$(getsym "$coin")
+        if [ "$bare" ]; then
+            printf "$coinsym$format$refsym" "$price"
+            [ "$count" -lt "$argnum" ] && printf " "
+        else
+            printf "$coinsym $format$refsym\n" "$price"
+        fi
+    else
+        curl -s "$ref".rate.sx/"$coin"@"$interval" >> "$tmpfile"
+    fi
+done
+
+if [ -z $onlyprice ]; then
+    [ "$(wc -l "$tmpfile" | awk '{print $1}')" -gt 40 ] && less -SRf "$tmpfile" || cat "$tmpfile"
+    rm "$tmpfile"
+fi

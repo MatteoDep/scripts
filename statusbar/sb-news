@@ -5,15 +5,15 @@
 
 icon='參'
 cmd1='%{A1:setsid -f "$TERMINAL" --class floatterm -e newsboat:}'
-cmd3='%{A3:setsid -f news-update:}'
+cmd3='%{A3:pkill -RTMIN+6 statusblocks:}'
 closecmd='%{A}'
-
-news=$(newsboat -x print-unread | awk '{ if($1>0) print $1}')
 
 printnews(){
     echo "$cmd1$cmd3$icon$news$closecmd$closecmd"
 }
 
+newsboat -x reload || xdotool key --window "$(/usr/bin/xdotool search --name newsboat)" R
+news=$(newsboat -x print-unread | awk '{print $1}')
 
 [ -e /tmp/newsupdate ] && {
     cat /tmp/newsupdate
