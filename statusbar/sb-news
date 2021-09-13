@@ -8,11 +8,15 @@ cmd1='%{A1:setsid -f "$TERMINAL" --class floatterm -e newsboat:}'
 cmd3='%{A3:pkill -RTMIN+6 statusblocks:}'
 closecmd='%{A}'
 
+cachefile="${XDG_CACHE_HOME:-~/.cache}"/sb-news-cache
 printnews(){
     echo "$cmd1$cmd3$icon$news$closecmd$closecmd"
 }
 
-newsboat -x reload || exit 0
-news=$(newsboat -x print-unread | awk '{print $1}')
-
-printnews
+if [ "$(pgrep newsboat)" ]; then
+    cat "$cachefile"
+else
+    newsboat -x reload
+    news=$(newsboat -x print-unread | awk '{print $1}')
+    printnews | tee "$cachefile"
+fi
