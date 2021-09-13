@@ -12,10 +12,7 @@ printnews(){
     echo "$cmd1$cmd3$icon$news$closecmd$closecmd"
 }
 
-newsboat -x reload || xdotool key --window "$(/usr/bin/xdotool search --name newsboat)" R
+newsboat -x reload || exit 0
 news=$(newsboat -x print-unread | awk '{print $1}')
 
-[ -e /tmp/newsupdate ] && {
-    cat /tmp/newsupdate
-    rm -f /tmp/newsupdate
-} || printnews | tee /tmp/newsupdate
+printnews
