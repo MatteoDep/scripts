@@ -5,18 +5,26 @@
 
 # coins to print
 coins="btc eth"
+chartcoins="btc eth ada dot bnb xmr link bat"
 
 # Directory where currency info is stored.
 dir="${XDG_DATA_HOME:-$HOME/.local/share}/crypto-prices"
+cachefile="${XDG_CACHE_HOME:-~/.cache}"/sb-crypto-cache
+assetsfile="${XDG_DATA_HOME:-$HOME/.local/share}/crypto-assets"
 
-cmd1='%{A1:setsid -f "$TERMINAL" --class floatterm -e getcrypto:}'
+cmd1='%{A1:setsid -f "$TERMINAL" --class floatterm -e getcrypto -g '"$chartcoins"':}'
+cmd2='%{A2:notify-send "$(cat '"$assetsfile"' | xargs getcrypto -t)":}'
 cmd3='%{A3:pkill -RTMIN+13 statusblocks:}'
 closecmd='%{A}'
+error=''
 
 printcrypto(){
-    echo "$cmd1$cmd3$prices$closecmd$closecmd"
+    echo "$error$cmd1$cmd2$cmd3$prices$closecmd$closecmd$closecmd"
 }
 
-prices=$(getcrypto -1b "$coins")
-
-printcrypto
+prices=$(getcrypto -b "$coins")
+if [ "$?" -gt 0 ]; then
+    echo "$(cat "$cachefile")"
+else
+    printcrypto | tee "$cachefile"
+fi

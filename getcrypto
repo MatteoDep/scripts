@@ -10,15 +10,21 @@ tmpfile=/tmp/cryptocharts
 ref="usd"
 
 # defaults
-coins="btc eth ada dot bnb xmr link bat lbc"
-interval="7d"
-bare=""
-onlyprice=""
+interval="3M"
+barformat=""
+chart=""
+printtotal=""
+endtime=20
 
 usage(){
-    echo "cryptoget [ -1b[ -i <interval>[ -r <refcrypto>]] <crypto1> <crypto2> ..."
-    echo "1   print only current price."
-    echo "b   in combination with 1 formats in a single line and without spaces between icon and price."
+    echo "getcrypto [ -bc[ -i <interval>[ -r <refcrypto>]] [value1]<crypto1> [[value2]<crypto2> [...]]"
+    echo "convert amount of crypto to the reference currency (ex: getcrypto -c -r eur 10xmr) or display price charts."
+    echo "b   formats in a single line and without spaces between icon and price."
+    echo "g   display price charts "
+    echo "i   time interval for price charts (default=$interval)"
+    echo "r   in combination with '-g' reference currency (default=$ref, fiat available: usd, eur)."
+    echo "t   calculate total amount in the reference currency."
+    echo "h   print this message and exit."
     echo "interval examples: '3d', '4w', 'march', '26-april-2020', ..."
     echo "    s   Second
     m   Minute
@@ -37,13 +43,14 @@ getsym(){
     esac
 }
 
-while getopts "h1bi:r:" option
+while getopts "gbti:r:h" option
 do
     case "$option" in
+        g) chart="true";;
+        b) barformat="true";;
+        t) printtotal="true";;
         i) interval="$OPTARG";;
         r) ref="$OPTARG";;
-        1) onlyprice="true";;
-        b) bare="true";;
         h) usage; exit 0;;
         *) echo "unsupported option $option."
             usage; exit 1;;
@@ -54,14 +61,29 @@ shift $((OPTIND-1))
 # delete tmpfile if present
 [ -f "$tmpfile" ] && rm "$tmpfile"
 
-[ "$*" ] && coins="$*"
-argnum=$(echo "$coins" | wc -w)
+if [ "$*" ]; then
+    args="$*"
+else
+    echo "no arguments given."
+    usage
+    exit 1
+fi
+argnum=$(echo "$args" | wc -w)
 count=0
+[ "$printtotal" ] && total=0
 
-for coin in $coins; do
-    if [ "$onlyprice" ]; then
-        count=$((count + 1))
-        price=$(curl -s "$ref".rate.sx/1"$coin")
+for arg in $args; do
+    coin=$(echo "$arg" | sed 's/[0-9]\+\.\+[0-9]\+//')
+    amount="${arg%"$coin"}"
+    [ "$amount" ] || amount='1'
+    count=$((count + 1))
+
+    if [ "$chart" ]; then
+        timeout "$endtime" curl -s "$ref".rate.sx/"$coin"@"$interval" >> "$tmpfile"
+        [ "$?" -gt 0 ] && exit 1
+    else
+        price=$(timeout "$endtime" curl -s "$ref".rate.sx/"$amount$coin")
+        [ "$?" -gt 0 ] && exit 1
         scale=$(echo "res=2.5 - (l($price)/l(10)); scale=0; res/1" | bc -l)
         if [ "$scale" -gt 0 ]; then
             format='%.'"$scale"'f'
@@ -70,18 +92,19 @@ for coin in $coins; do
         fi
         refsym=$(getsym "$ref")
         coinsym=$(getsym "$coin")
-        if [ "$bare" ]; then
+        if [ "$barformat" ]; then
             printf "$coinsym$format$refsym" "$price"
             [ "$count" -lt "$argnum" ] && printf " "
         else
             printf "$coinsym $format$refsym\n" "$price"
         fi
-    else
-        curl -s "$ref".rate.sx/"$coin"@"$interval" >> "$tmpfile"
+        [ "$printtotal" ] && total=$(echo "$total+$price" | bc)
     fi
 done
 
-if [ -z $onlyprice ]; then
-    [ "$(wc -l "$tmpfile" | awk '{print $1}')" -gt 40 ] && less -SRf "$tmpfile" || cat "$tmpfile"
+[ "$printtotal" ] && echo "total: $total$refsym"
+
+if [ "$chart" ]; then
+    [ "$count" -gt 1 ] && less -SRf "$tmpfile" || cat "$tmpfile"
     rm "$tmpfile"
 fi
