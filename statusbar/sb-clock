@@ -2,7 +2,7 @@
 
 clock=$(date '+%I')
 
-cmd1='%{A1:setsid -f "$TERMINAL" -e calcurse:}'
+cmd1='%{A1:setsid -f "$TERMINAL" --class=floatterm -e calcurse:}'
 cmd3='%{A3:aps=$(calcurse -d3); notify-send "$([ $aps ] || echo -n "No ")Appointments" "$aps":}'
 closecmd='%{A}'
 

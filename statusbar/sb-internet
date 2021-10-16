@@ -8,7 +8,7 @@ ethup=''
 wifidown='睊'
 ethdown=''
 
-cmd1='%{A1:setsid -f "$TERMINAL" --class floatterm -e connmanctl; pkill -RTMIN+4 statusblocks:}'
+cmd1='%{A1:setsid -f "$TERMINAL" --class=floatterm -e connmanctl:}'
 closecmd='%{A}'
 
 case "$(cat /sys/class/net/w*/operstate 2>/dev/null)" in
