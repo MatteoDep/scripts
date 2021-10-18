@@ -16,10 +16,9 @@ cmd1='%{A1:setsid -f "$TERMINAL" --class floatterm -e getcrypto -g '"$chartcoins
 cmd2='%{A2:notify-send "$(cat '"$assetsfile"' | xargs getcrypto -t)":}'
 cmd3='%{A3:pkill -RTMIN+13 statusblocks:}'
 closecmd='%{A}'
-error=''
 
 printcrypto(){
-    echo "$error$cmd1$cmd2$cmd3$prices$closecmd$closecmd$closecmd"
+    echo "$cmd1$cmd2$cmd3$prices$closecmd$closecmd$closecmd"
 }
 
 prices=$(getcrypto -b "$coins")
