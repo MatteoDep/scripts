@@ -1,11 +1,11 @@
 #!/bin/sh
 
-colors=$(xrdb -query)
-fgcol=$(echo "$colors" | awk '/background/ {print $2}')
-bgcol=$(echo "$colors" | awk '/foreground/ {print $2}')
+maxlength=30
 
 wtitle=$(xdotool getwindowname "$(xdotool getwindowfocus)")
-[ "$(echo "$wtitle" | cut -c21)" ] && wtitle=$(echo "$wtitle" | cut -c1-20)"..."
+[ "$(echo "$wtitle" | cut -c"$((maxlength+1))")" ] && wtitleshort=$(echo "$wtitle" | cut -c1-"$maxlength")"..." || wtitleshort="$wtitle"
 
+cmd1='%{A1:notify-send "'"$wtitle"'":}'
+closecmd='%{A}'
 
-echo "%{F$fgcol}%{B$bgcol}%{R}$wtitle%{R}%{F-}%{B-}"
+echo "$cmd1$wtitleshort$closecmd"
