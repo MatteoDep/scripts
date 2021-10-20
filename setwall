@@ -4,17 +4,20 @@ wallfile="$HOME/.local/share/wallpaper"
 
 # just refresh wallpaper
 if [ "$1" = "--refresh" ]; then
-    img=$(cat "$wallfile")
-    printf "wallpaper --zoom $img"
-    xwallpaper --zoom "$img"
+    cat "$wallfile" | xargs xwallpaper --zoom
     exit
 fi
 
 # get argument
-[ -f "$1" ] && img="$1" || {
-    [ -d "$1" ] && dir="$1" || dir="$HOME"/media/wallpapers
-    img=$(get-rand-img "$dir")
-}
-echo "$img"
+if [ -f "$1" ]; then
+    img="$1"
+else
+    if [ -d "$1" ]; then
+        dir="$1"
+    else
+        dir="$HOME"/media/wallpapers
+    fi
+    img=$(find -L "$dir" -type f | shuf -n 1)
+fi
 
 echo "$(realpath "$img")" >"$wallfile" && setwall --refresh
