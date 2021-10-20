@@ -25,10 +25,17 @@ get_new_devices() {
 }
 
 power_off() {
-    printf "power off\n" | _bluetoothctl | notify "Turned off bluetooth"
+    echo "power off" | _bluetoothctl
+    notify "Turned off bluetooth"
+}
+
+power_on() {
+    echo "power on" | _bluetoothctl
+    notify "Turned on bluetooth"
 }
 
 connect_disconnect() {
+    power_on
     mode=${1?BUG: missing mode}
     retries=15
 
@@ -83,8 +90,8 @@ connect_disconnect() {
     done
 
     # case of failure
-    power_off
     ret="$?"
+    power_off
     notify "Failed to $mode $preposition $name" "critical"
     return "$ret"
 }
@@ -101,7 +108,7 @@ execute_mode(){
             power_off
         ;;
         *)
-            [ -z $mode ] || notify "Unknown mode $mode" || exit 2
+            [ $mode ] && notify "Unknown mode $mode"
             exit 1
         ;;
     esac
