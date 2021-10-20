@@ -1,0 +1,18 @@
+#!/bin/sh
+
+cachefile="${XDG_CACHE_HOME:-~/.cache}"/sb-weather-cache
+
+cmd1='%{A1:setsid -f "$TERMINAL" --class floatterm -e getweather -v:}'
+cmd3='%{A3:pkill -RTMIN+7 statusblocks:}'
+closecmd='%{A}'
+
+printweather(){
+    echo "$cmd1$cmd3$weather$closecmd$closecmd"
+}
+
+weather=$(getweather -f '%c')
+if [ "$?" -gt 0 ]; then
+    echo "$(cat "$cachefile")"
+else
+    printweather | tee "$cachefile"
+fi

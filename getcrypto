@@ -105,6 +105,6 @@ done
 [ "$printtotal" ] && echo "total: $total$refsym"
 
 if [ "$chart" ]; then
-    [ "$count" -gt 1 ] && less -SRf "$tmpfile" || cat "$tmpfile"
+    less -SRf "$tmpfile"
     rm "$tmpfile"
 fi

@@ -34,7 +34,7 @@ Examples:
     getweather colosseum"
 }
 
-tmpimg='/tmp/getweather_img.png'
+tmpfile='/tmp/weatherchart'
 prefix=''
 suffix=''
 formatstr=''
@@ -58,6 +58,9 @@ shift $((OPTIND-1))
 if [ "$prefix" = 'v3.' ]; then
     curl -s --output "$tmpimg" "${prefix}wttr.in/$location$formatstr$suffix"
     setsid -f sxiv "$tmpimg"
+elif [ -z "$formatstr" ]; then
+    curl -s "${prefix}wttr.in/$location$formatstr$suffix" > "$tmpfile"
+    less -SRf "$tmpfile"
 else
     curl -s "${prefix}wttr.in/$location$formatstr$suffix"
 fi

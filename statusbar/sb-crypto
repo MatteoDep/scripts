@@ -1,14 +1,9 @@
 #!/bin/sh
 
-# Shows the price for desired cryptocurrencies. Module updates automatically
-# every calendar day, but can also be updated with a middle click.
-
 # coins to print
 coins="btc eth"
 chartcoins="btc eth ada dot bnb xmr link bat"
 
-# Directory where currency info is stored.
-dir="${XDG_DATA_HOME:-$HOME/.local/share}/crypto-prices"
 cachefile="${XDG_CACHE_HOME:-~/.cache}"/sb-crypto-cache
 assetsfile="${XDG_DATA_HOME:-$HOME/.local/share}/crypto-assets"
 
