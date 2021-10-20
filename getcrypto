@@ -17,23 +17,23 @@ printtotal=""
 endtime=20
 
 usage(){
-    echo "getcrypto [ -bc[ -i <interval>[ -r <refcrypto>]] [value1]<crypto1> [[value2]<crypto2> [...]]"
-    echo "convert amount of crypto to the reference currency (ex: getcrypto -c -r eur 10xmr) or display price charts."
-    echo "b   formats in a single line and without spaces between icon and price."
-    echo "g   display price charts "
-    echo "i   time interval for price charts (default=$interval)"
-    echo "r   in combination with '-g' reference currency (default=$ref, fiat available: usd, eur)."
-    echo "t   calculate total amount in the reference currency."
-    echo "h   print this message and exit."
-    echo "interval examples: '3d', '4w', 'march', '26-april-2020', ..."
-    echo "    s   Second
+    echo "getcrypto [ -bc[ -i <interval>[ -r <refcrypto>]] [value1]<crypto1> [[value2]<crypto2> [...]]
+convert amount of crypto to the reference currency (ex: getcrypto -c -r eur 10xmr) or display price charts.
+b   formats in a single line and without spaces between icon and price.
+g   display price charts
+i   time interval for price charts (default=$interval)
+r   in combination with '-g' reference currency (default=$ref, fiat available: usd, eur).
+t   calculate total amount in the reference currency.
+h   print this message and exit.
+interval examples: '3d', '4w', 'march', '26-april-2020', ...
+    s   Second
     m   Minute
     h   Hour
     d   Day (24 hours)
     w   Week
     M   Month (30 days)
-    y   Year (365 days)"
-    echo "crypto examples: 'btc', 'eth', 'xmr', 'ada', ..."
+    y   Year (365 days)
+crypto examples: 'btc', 'eth', 'xmr', 'ada', ..."
 }
 getsym(){
     case "$1" in

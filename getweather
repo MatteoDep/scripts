@@ -1,0 +1,63 @@
+#!/bin/sh
+
+usage(){
+    echo "getweather [-h] [<location>]
+get weather report of specified location. If no location argument is given the ip address info will be used.
+v   data rich output with more informations. (incompatible with '-m' and '-f')
+m   show weather map in sxiv. (incompatible with '-v' and '-f')
+f   specify output format, using the notation specified below.
+h   print this message and exit.
+format options:
+    %c    Weather condition,
+    %C    Weather condition textual name,
+    %x    Weather condition, plain-text symbol,
+    %h    Humidity,
+    %t    Temperature (Actual),
+    %f    Temperature (Feels Like),
+    %w    Wind,
+    %l    Location,
+    %m    Moon phase 🌑🌒🌓🌔🌕🌖🌗🌘,
+    %M    Moon day,
+    %p    Precipitation (mm/3 hours),
+    %P    Pressure (hPa),
+    %D    Dawn*,
+    %S    Sunrise*,
+    %z    Zenith*,
+    %s    Sunset*,
+    %d    Dusk*,
+    %T    Current time*,
+    %Z    Local timezone.
+    \\n    Carriage return.
+Examples:
+    getweather chicago
+    getweather -f '%c %t(%f)' zuid holland
+    getweather colosseum"
+}
+
+tmpimg='/tmp/getweather_img.png'
+prefix=''
+suffix=''
+formatstr=''
+location=''
+
+while getopts "vmf:h" option
+do
+    case "$option" in
+        v) prefix='v2d.';;
+        m) prefix='v3.'; suffix='.png';;
+        f) formatstr="?format=$(echo "$OPTARG" | tr ' ' '+')";;
+        h) usage; exit 0;;
+        *) echo "unsupported option $option."
+            usage; exit 1;;
+    esac
+done
+shift $((OPTIND-1))
+
+[ "$*" ] && location=$(echo "$*" | tr ' ' '+')
+
+if [ "$prefix" = 'v3.' ]; then
+    curl -s --output "$tmpimg" "${prefix}wttr.in/$location$formatstr$suffix"
+    setsid -f sxiv "$tmpimg"
+else
+    curl -s "${prefix}wttr.in/$location$formatstr$suffix"
+fi
