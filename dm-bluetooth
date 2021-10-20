@@ -92,7 +92,7 @@ connect_disconnect() {
     # case of failure
     ret="$?"
     power_off
-    notify "Failed to $mode $preposition $name" "critical"
+    notify "Failed to $mode $preposition $name. Try `sudo bluetooth on`." "critical"
     return "$ret"
 }
 
