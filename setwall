@@ -3,7 +3,7 @@
 wallfile="$HOME/.local/share/wallpaper"
 
 # just refresh wallpaper
-if [ "$1" = "--refresh" ]; then
+if [ "$1" = "--restore" ]; then
     cat "$wallfile" | xargs xwallpaper --zoom
     exit
 fi

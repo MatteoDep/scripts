@@ -1,8 +1,8 @@
 #!/bin/sh
 
 layouts="laptop-only
-fullHD-VGA-above
-fullHD-VGA-left"
+VGA-above
+VGA-left"
 
 [ "$1" ] && layout="$1" || layout=$(echo "$layouts" | dmenu -p 'choose layout: ')
 
@@ -45,6 +45,6 @@ esac
 
 xsetwacom set "$(xsetwacom --list | awk '/stylus/ {print $8}')" maptooutput eDP-1
 xsetwacom set "$(xsetwacom --list | awk '/eraser/ {print $8}')" maptooutput eDP-1
-setwall --refresh &
+setwall --restore &
 pkill -x launchbar > /dev/null
 launchbar bar1 &
