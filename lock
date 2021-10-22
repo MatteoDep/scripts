@@ -21,10 +21,11 @@ create_cache_img(){
     convert -size "$screendims" xc:skyblue "$cache_img"
     echo "$curr_geometries" | while read width height xoff yoff
     do
-        convert "$cache_img" -draw "image over ${xoff},${yoff} ${width},${height} '$curr_img'" "$cache_img"
+        composite -gravity NorthWest -geometry "${width}x${height}^+${xoff}+${yoff}" "$curr_img" "$cache_img" "$cache_img"
     done
 }
 
+[ "$1" = '--debug' ] && rm "$cache_file"
 if [ -f "$cache_file" ]; then
     IFS=',' read old_img old_geometries < "$cache_file"
     old_geometries=$(echo "$old_geometries" | tr '|' '\n')
@@ -41,30 +42,34 @@ else
     echo "$curr_img,$(echo "$curr_geometries" | tr '\n' '|')" > "$cache_file"
 fi
 
-i3lock \
---insidever-color=$white \
---ringver-color=$lightblue \
-\
---insidewrong-color=$white \
---ringwrong-color=$red \
-\
---inside-color=$white \
---ring-color=$blue \
---line-color=$black \
---separator-color=$black \
-\
---verif-color=$black \
---wrong-color=$black \
---time-color=$black \
---date-color=$black \
---keyhl-color=$green \
---bshl-color=$red \
-\
---screen 1 \
---blur 5 \
---clock \
---indicator \
---time-str="%H:%M:%S" \
---date-str="%Y %b %d (%a)" \
---pass-media \
---image="$cache_img"
+if [ "$1" = '--debug' ]; then
+    sxiv "$cache_img"
+else
+    i3lock \
+    --insidever-color=$white \
+    --ringver-color=$lightblue \
+    \
+    --insidewrong-color=$white \
+    --ringwrong-color=$red \
+    \
+    --inside-color=$white \
+    --ring-color=$blue \
+    --line-color=$black \
+    --separator-color=$black \
+    \
+    --verif-color=$black \
+    --wrong-color=$black \
+    --time-color=$black \
+    --date-color=$black \
+    --keyhl-color=$green \
+    --bshl-color=$red \
+    \
+    --screen 1 \
+    --blur 5 \
+    --clock \
+    --indicator \
+    --time-str="%H:%M:%S" \
+    --date-str="%Y %b %d (%a)" \
+    --pass-media \
+    --image="$cache_img"
+fi
