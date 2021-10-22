@@ -9,10 +9,37 @@ red=$(echo "$colors" | awk '/color1:/ {print $2}')
 green=$(echo "$colors" | awk '/color2:/ {print $2}')
 lightblue=$(echo "$colors" | awk '/color6:/ {print $2}')
 
-tmpimg=/tmp/lockimg
-image=$(cat "${XDG_DATA_HOME:-~/.local/share}"/wallpaper)
-screendims=$(xdpyinfo | grep dimensions | sed -r 's/^[^0-9]*([0-9]+x[0-9]+).*$/\1/')
-convert "$image" -resize "$screendims"^ "$tmpimg"
+cache_file="${XDG_CACHE_HOME:-"$HOME/.cache"}"/lock-info
+cache_img="${XDG_CACHE_HOME:-"$HOME/.cache"}"/lock-img.jpg
+curr_img=$(cat "${XDG_DATA_HOME:-"$HOME/.local/share"}"/wallpaper)
+curr_geometries=$(xrandr --listactivemonitors |
+        sed -n 's/^\s*[0-9]\+:.*\s\+\([0-9]\+\)\/[0-9]\+x\([0-9]\+\)\/[0-9]\++\([0-9]\+\)+\([0-9]\+\)\s.*$/\1 \2 \3 \4/p')
+
+create_cache_img(){
+    screendims=$(xdpyinfo |
+        sed -n 's/^\s*dimensions:\s*\([0-9]\+x[0-9]\+\).*$/\1/p')
+    convert -size "$screendims" xc:skyblue "$cache_img"
+    echo "$curr_geometries" | while read width height xoff yoff
+    do
+        convert "$cache_img" -draw "image over ${xoff},${yoff} ${width},${height} '$curr_img'" "$cache_img"
+    done
+}
+
+if [ -f "$cache_file" ]; then
+    IFS=',' read old_img old_geometries < "$cache_file"
+    old_geometries=$(echo "$old_geometries" | tr '|' '\n')
+    if [ "$old_img" != "$curr_img" \
+        -o "$old_geometries" != "$curr_geometries" ]
+    then
+        create_cache_img
+        echo "$curr_img,$(echo "$curr_geometries" | tr '\n' '|')" > "$cache_file"
+    else
+        echo "using cached version"
+    fi
+else
+    create_cache_img
+    echo "$curr_img,$(echo "$curr_geometries" | tr '\n' '|')" > "$cache_file"
+fi
 
 i3lock \
 --insidever-color=$white \
@@ -40,4 +67,4 @@ i3lock \
 --time-str="%H:%M:%S" \
 --date-str="%Y %b %d (%a)" \
 --pass-media \
---image="$tmpimg"
+--image="$cache_img"

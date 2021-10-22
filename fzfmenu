@@ -32,11 +32,12 @@ usage() {
 }
 
 get_focused_monitor_geometry(){
-    geometries=$(xrandr --listactivemonitors | sed -n 's/^\s*\([0-9]\+\):.*\s\+\([0-9]\+\)\/[0-9]\+x\([0-9]\+\)\/[0-9]\++\([0-9]\+\)+\([0-9]\+\)\s.*$/\1 \2 \3 \4 \5/p')
+    geometries=$(xrandr --listactivemonitors |
+        sed -n 's/^\s*[0-9]\+:.*\s\+\([0-9]\+\)\/[0-9]\+x\([0-9]\+\)\/[0-9]\++\([0-9]\+\)+\([0-9]\+\)\s.*$/\1 \2 \3 \4/p')
     x=$(xdotool getmouselocation --shell | sed -n 's/^X=\([0-9]\+\)$/\1/p')
     y=$(xdotool getmouselocation --shell | sed -n 's/^Y=\([0-9]\+\)$/\1/p')
 
-    echo "$geometries" | while read id width height xoff yoff
+    echo "$geometries" | while read width height xoff yoff
     do
         if [ "$x" -ge "$xoff" \
             -a "$y" -ge "$yoff" \
