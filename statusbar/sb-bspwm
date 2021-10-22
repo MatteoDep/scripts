@@ -119,8 +119,6 @@ case $line in
             esac
             shift
         done
-        echo "$wm"
         ;;
 esac
 echo "${wm}"
-pkill -RTMIN+2 "${STATUSBAR:-statusblocks}"

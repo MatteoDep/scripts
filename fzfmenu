@@ -6,11 +6,10 @@
 # - lines using terminal geometry options
 # - support for font and color options (if achievable)
 
-x=0
-y=20
-w="100%"
 maxlines=32
 fontsize=11
+x_off=0
+y_off=20
 marginx=0
 marginy=0
 paddingx=0
@@ -31,6 +30,32 @@ tmpfile=/tmp/fzfmenu-input
 usage() {
     echo "$usage"
 }
+
+get_focused_monitor_geometry(){
+    geometries=$(xrandr --listactivemonitors | sed -n 's/^\s*\([0-9]\+\):.*\s\+\([0-9]\+\)\/[0-9]\+x\([0-9]\+\)\/[0-9]\++\([0-9]\+\)+\([0-9]\+\)\s.*$/\1 \2 \3 \4 \5/p')
+    winpos=$(xwininfo -id "$(xdotool getactivewindow)" | sed -n 's/^\s\+Corners:\s\++\([0-9]\+\)+\([0-9]\+\)\s\+.*$/\1 \2/p')
+    x=$(echo "$winpos" | cut -d' ' -f1)
+    y=$(echo "$winpos" | cut -d' ' -f2)
+
+    echo "$geometries" | while read id width height xoff yoff
+    do
+        if [ "$x" -ge "$xoff" \
+            -a "$y" -ge "$yoff" \
+            -a "$x" -lt "$(($xoff+$width))" \
+            -a "$y" -lt "$(($yoff+$height))" ]
+        then
+            echo "$width $height $xoff $yoff"
+        fi
+    done
+}
+
+geometry=$(get_focused_monitor_geometry)
+[ -z "$geometry" ] && echo "Could not detect monitor!" && exit 1
+x0=$(echo "$geometry" | cut -d' ' -f3)
+y0=$(echo "$geometry" | cut -d' ' -f4)
+w=$(echo "$geometry" | cut -d' ' -f1)
+x=$((x0+x_off))
+y=$((y0+y_off))
 
 if [ "$1" = "--parent-proc-id" ]; then
     parent_proc_id="$2"

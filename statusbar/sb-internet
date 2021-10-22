@@ -13,7 +13,7 @@ closecmd='%{A}'
 
 case "$(cat /sys/class/net/w*/operstate 2>/dev/null)" in
 	down) wifi=$wifidown ;;
-	up) wifi="$(awk '/^\s*w/ { print "wifiup" int($3 * 100 / 70) "%" }' /proc/net/wireless | sed "s/wifiup/$wifiup/")" ;;
+	up) wifi="$(awk '/^\s*w/ { print "'"$wifiup"'" int($3 * 100 / 70) "%" }' /proc/net/wireless)" ;;
 esac
 eth=$(sed "s/down/$ethdown/;s/up/$ethup/" /sys/class/net/e*/operstate 2>/dev/null)
 
