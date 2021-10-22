@@ -14,24 +14,24 @@ bspc subscribe report > "$PANEL_FIFO" &
 
 case $layout in
     laptop-only)
-        xrandr --output eDP-1 --primary --mode 1366x768 --rotate normal \
+        xrandr --output eDP-1 --primary --auto --rotate normal \
             --output VGA-1 --off \
             --output HDMI-1 --off
         bspc monitor eDP-1 -d 1 2 3 4 5 6 7 8 9
         bspc monitor VGA-1 --remove
         bspc monitor HDMI-1 --remove
         ;;
-    fullHD-VGA-above)
-        xrandr --output eDP-1 --primary --mode 1366x768 --rotate normal \
-            --output VGA-1 --mode 1920x1080 --above eDP-1 --rotate normal \
+    VGA-above)
+        xrandr --output eDP-1 --primary --auto --rotate normal \
+            --output VGA-1 --auto --above eDP-1 --rotate normal \
             --output HDMI-1 --off
         bspc monitor VGA-1 -d 1 2 3
         bspc monitor eDP-1 -d 4 5 6 7 8 9
         bspc monitor HDMI-1 --remove
         ;;
-    fullHD-VGA-left)
-        xrandr --output eDP-1 --primary --mode 1366x768 --rotate normal \
-            --output VGA-1 --mode 1920x1080 --left-of eDP-1 --rotate normal \
+    VGA-left)
+        xrandr --output eDP-1 --primary --auto --rotate normal \
+            --output VGA-1 --auto --left-of eDP-1 --rotate normal \
             --output HDMI-1 --off
         bspc monitor VGA-1 -d 1 2 3
         bspc monitor eDP-1 -d 4 5 6 7 8 9
