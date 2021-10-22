@@ -20,4 +20,4 @@ else
     img=$(find -L "$dir" -type f | shuf -n 1)
 fi
 
-echo "$(realpath "$img")" >"$wallfile" && setwall --refresh
+echo "$(realpath "$img")" >"$wallfile" && setwall --restore
