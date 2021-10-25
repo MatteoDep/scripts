@@ -4,7 +4,6 @@ choices="single
 add monitor
 remove monitor
 map tablet
-set default
 restore
 load
 save
@@ -19,7 +18,7 @@ xrandr_args_file="${XDG_DATA_HOME:-"$HOME/.local/share"}"/monitor-xrandr-args
 
 # get monitors
 get_monitors(){
-    monitors=$(xrandr --listmonitors | awk '/^\s*[0-9]+:/ {print $4}')
+    monitors=$(xrandr -q | awk '/\s+connected.*/ {print $1}')
     active_monitors=$(xrandr --listactivemonitors | awk '/^\s*[0-9]+:/ {print $4}')
     embedded_monitor=$(echo "$monitors" | grep -i 'edp')
 }
@@ -31,7 +30,7 @@ single(){
         [ "$monitor" != "$embedded_monitor" ] &&
             xrandr_args=$(echo "$xrandr_args"; echo "    --output $monitor --off \\")
     done
-    run_xrandr
+    apply
     active_monitors="$embedded_monitor"
 }
 
@@ -45,14 +44,14 @@ add_monitor(){
     fi
     monitor=$(echo "$addable_monitors" | dmenu -p 'choose monitor: ')
     [ -z "$monitor" ] && return
-    mode=$(echo "$add_options" | dmenu -p 'choose mode: ')
-    [ -z "$mode" ] && return
+    pos=$(echo "$add_options" | dmenu -p 'choose mode: ')
+    [ -z "$pos" ] && return
     target_monitor=$(echo "$active_monitors" | dmenu -p 'choose target monitor: ')
     [ -z "$target_monitor" ] && return
     [ "$monitor" = "$embedded_monitor" ] && primary="--primary" || primary=""
-    args="--output $monitor $primary --$mode $target_monitor"
-    xrandr_args=$(echo "$xrandr_args" | sed 's/^\(\s\)\+--output\s\+'"$monitor"'\s.*\\$/\1'"$args"' \\/')
-    run_xrandr
+    args="--output $monitor --auto $primary --$pos $target_monitor"
+    xrandr_args=$(echo "$xrandr_args" | sed 's/^\(\s\+\)--output\s\+'"$monitor"'\s.*\\$/\1'"$args"' \\/')
+    apply
     active_monitors="$active_monitors
 $monitor"
 }
@@ -68,11 +67,11 @@ remove_monitor(){
     monitor=$(echo "$removable_monitors" | dmenu -p 'choose monitor: ')
     [ -z "$monitor" ] && return
     args="--output $monitor --off"
-    xrandr_args=$(echo "$xrandr_args" | sed 's/^\(\s\)\+--output\s\+'"$monitor"'\s.*\\$/\1'"$args"' \\/')
-    for mode in $add_options; do
-        xrandr_args=$(echo "$xrandr_args" | sed 's/--'"$mode"'\s\+'"$monitor"'//;s/\s\+/ /')
+    xrandr_args=$(echo "$xrandr_args" | sed 's/^\(\s\+\)--output\s\+'"$monitor"'\s.*\\$/\1'"$args"' \\/')
+    for pos in $add_options; do
+        xrandr_args=$(echo "$xrandr_args" | sed 's/--'"$pos"'\s\+'"$monitor"'//;s/\s\+/ /g')
     done
-    run_xrandr
+    apply
     active_monitors=$(echo "$active_monitors" | grep -v "$monitor")
 }
 
@@ -94,17 +93,14 @@ save(){
     notify-send "xrandrmenu" "The function is not yet implemented."
 }
 
-set_default(){
+apply(){
     echo "$xrandr_args" | tee "$xrandr_args_file"
     echo "$tablet_monitor" | tee "$tablet_monitor_file"
-}
-
-run_xrandr(){
-    echo "$xrandr_args" | xargs xrandr
+    echo "$xrandr_args" | tr -d '\\' | sed 's/\s\+/ /g' | xargs xrandr
 }
 
 restore(){
-    run xrandr
+    apply
     map_tablet "$tablet_monitor"
 }
 
@@ -124,9 +120,6 @@ menu_loop(){
                 ;;
             'map tablet')
                 map_tablet
-                ;;
-            'set default')
-                set_default
                 ;;
             'restore')
                 restore

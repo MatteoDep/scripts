@@ -45,6 +45,7 @@ get_focused_monitor_geometry(){
             -a "$y" -lt "$(($yoff+$height))" ]
         then
             echo "$width $height $xoff $yoff"
+            break
         fi
     done
 }
