@@ -1,0 +1,38 @@
+#!/bin/sh
+
+src_dir="$HOME/.local/src"
+bin_dir="$HOME/.local/bin"
+
+usage(){
+    echo "appimage-installer [-a alias] -i appimage-file
+or appimage-installer -u program.
+    -a  install as 'alias'."
+}
+
+while getopts "u:i:a:h" option
+do
+    case "${option}" in
+        a) alias="$OPTARG";;
+        u) uninstall_arg="$OPTARG";;
+        i) install_arg="$OPTARG";;
+        h) usage; exit 0;;
+        *) echo "unsupported option $option"
+            usage; exit 1;;
+    esac
+done
+shift $((OPTIND-1))
+
+if [ "$install_arg" ]; then
+    name=$(basename "$install_arg")
+    name_noext=${name%.AppImage}
+    path="$src_dir/$name"
+    [ -z "$alias" ] && alias="$name_noext"
+    mkdir -p "$src_dir"
+    mv "$install_arg" "$path"
+    chmod +x "$path"
+    ln -s "$path" "$bin_dir/$alias"
+fi
+
+if [ "$uninstall_arg" ]; then
+    rm "$bin_dir/$uninstall_arg"
+fi
