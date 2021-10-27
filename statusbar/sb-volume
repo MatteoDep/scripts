@@ -23,7 +23,7 @@ else
     else
         icon="$medium"
     fi
-    vol="$vol"'%%'
+    vol="$vol"'%'
 fi
 
 echo "$cmd1$cmd3$cmd4$cmd5$icon$vol$closecmd$closecmd$closecmd$closecmd"
