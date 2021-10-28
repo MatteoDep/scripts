@@ -6,6 +6,8 @@
 # - lines using terminal geometry options
 # - support for font and color options (if achievable)
 
+terminal="$TERMINAL --class floatterm -t fzfmenu"
+# terminal="xterm -class floatterm -title fzfmenu"
 maxlines=32
 fontsize=11
 x_off=0
@@ -99,5 +101,5 @@ else
     shift $((OPTIND-1))
 
     cat /proc/"$$"/fd/0 > "$tmpfile"
-    $TERMINAL --class 'floatterm' -t 'fzfmenu' -e fzfmenu --parent-proc-id "$$" $args
+    $terminal -e fzfmenu --parent-proc-id "$$" $args
 fi

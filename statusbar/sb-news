@@ -7,7 +7,6 @@ icon='參'
 cmd1='%{A1:setsid -f "$TERMINAL" --class floatterm -e newsboat:}'
 cmd3='%{A3:pkill -RTMIN+6 statusblocks:}'
 closecmd='%{A}'
-error=''
 endtime=20
 
 cachefile="${XDG_CACHE_HOME:-~/.cache}"/sb-news-cache
@@ -18,7 +17,14 @@ printnews(){
 if [ "$(pgrep newsboat)" ]; then
     cat "$cachefile"
 else
-    timeout "$endtime" newsboat -x reload || error=""
-    news=$(newsboat -x print-unread | awk '{print $1}')
+    msg=$(timeout "$endtime" newsboat -x reload)
+    err=$?
+    if [ "$msg" ]; then
+        cat "$cachefile"
+        exit
+    elif [ "$err" -gt 0 ]; then
+        error=""
+    fi
+    news=$(newsboat -x print-unread 2>/dev/null | awk '{print $1}')
     printnews | tee "$cachefile"
 fi

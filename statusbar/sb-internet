@@ -9,6 +9,8 @@ wifidown='睊'
 ethdown=''
 
 cmd1='%{A1:setsid -f "$TERMINAL" --class=floatterm -e connmanctl:}'
+# en_dis_able='$(connmanctl technologies | sed -n '"'"'/ = wifi/{n;p}'"'"' | sed '"'"'s/^.*True$/disable/;s/^.*False$/enable/'"'"')'
+# cmd3='%{A3:connmanctl "'"$en_dis_able"'" wifi && notify-send "'"$en_dis_able"'ed wifi":}'
 closecmd='%{A}'
 
 case "$(cat /sys/class/net/w*/operstate 2>/dev/null)" in
@@ -17,4 +19,5 @@ case "$(cat /sys/class/net/w*/operstate 2>/dev/null)" in
 esac
 eth=$(sed "s/down/$ethdown/;s/up/$ethup/" /sys/class/net/e*/operstate 2>/dev/null)
 
+# echo "$cmd1$cmd3$wifi$eth$closecmd$closecmd"
 echo "$cmd1$wifi$eth$closecmd"
