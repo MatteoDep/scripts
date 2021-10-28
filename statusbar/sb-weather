@@ -11,7 +11,7 @@ printweather(){
 }
 
 weather=$(getweather -f '%c')
-if [ "$?" -gt 0 ]; then
+if [ "$?" -gt 0 -o "$(echo "$weather" | grep -i 'unknown')" ]; then
     echo "$(cat "$cachefile")"
 else
     printweather | tee "$cachefile"

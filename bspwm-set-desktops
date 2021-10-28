@@ -18,12 +18,13 @@ for num in $rule; do
     monitor=$(echo "$layout" | head -n 1)
     layout=$(echo "$layout" | grep -v "$monitor")
     bspc monitor "$monitor" -d $args
-
     from_num=$((from_num+num))
 done
 
+monitors=$(xrandr -q | awk '/\s+connected.*/ {print $1}')
 active_monitors=$(xrandr --listactivemonitors | awk '/^\s*[0-9]+:/ {print $4}')
-inactive_monintors=(for m in $monitors; do echo "$active_monitors" | grep -q "$m" || echo "$m"; done)
+inactive_monintors=$(for m in $monitors; do echo "$active_monitors" | grep -q "$m" || echo "$m"; done)
 for m in $inactive_monintors; do
     bspc monitor "$m" --remove
+    echo "$monitor --remove"
 done
