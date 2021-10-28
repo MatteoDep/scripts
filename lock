@@ -15,17 +15,25 @@ curr_img=$(cat "${XDG_DATA_HOME:-"$HOME/.local/share"}"/wallpaper)
 curr_geometries=$(xrandr --listactivemonitors |
         sed -n 's/^\s*[0-9]\+:.*\s\+\([0-9]\+\)\/[0-9]\+x\([0-9]\+\)\/[0-9]\++\([0-9]\+\)+\([0-9]\+\)\s.*$/\1 \2 \3 \4/p')
 
+if [ "$1" = '--debug' ]; then
+    rm "$cache_file"
+    debug=1
+fi
+
 create_cache_img(){
     screendims=$(xdpyinfo |
         sed -n 's/^\s*dimensions:\s*\([0-9]\+x[0-9]\+\).*$/\1/p')
     convert -size "$screendims" xc:skyblue "$cache_img"
     echo "$curr_geometries" | while read width height xoff yoff
     do
-        composite -gravity NorthWest -geometry "${width}x${height}^+${xoff}+${yoff}" "$curr_img" "$cache_img" "$cache_img"
+        convert "$cache_img" \
+            \( "$curr_img" -resize "${width}x${height}^" -gravity center -extent "${width}x${height}^" \) \
+            -gravity northwest \
+            -geometry "+${xoff}+${yoff}" -composite "$cache_img"
+        [ $debug ] && sxiv "$cache_img"
     done
 }
 
-[ "$1" = '--debug' ] && rm "$cache_file"
 if [ -f "$cache_file" ]; then
     IFS=',' read old_img old_geometries < "$cache_file"
     old_geometries=$(echo "$old_geometries" | tr '|' '\n')
@@ -42,9 +50,7 @@ else
     echo "$curr_img,$(echo "$curr_geometries" | tr '\n' '|')" > "$cache_file"
 fi
 
-if [ "$1" = '--debug' ]; then
-    sxiv "$cache_img"
-else
+if [ ! $debug ]; then
     i3lock \
     --insidever-color=$white \
     --ringver-color=$lightblue \
