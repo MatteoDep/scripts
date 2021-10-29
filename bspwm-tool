@@ -1,0 +1,58 @@
+#!/bin/sh
+
+auto_set_desktops(){
+    rules="|1:9|2:4 5|3:3 3 3|"
+    desktops="123456789"
+
+    layout=$(xrandr --listactivemonitors |
+            sed -n 's/^\s*[0-9]\+:.*\s\+[0-9]\+\/[0-9]\+x[0-9]\+\/[0-9]\++\([0-9]\+\)+\([0-9]\+\)\s\+\(.\+\)$/\3 \1 \2/p' |
+            awk '{print $1 " " $2+$3}' | sort -k2 | cut -d' ' -f 1)
+    rule=$(echo "$rules" |
+        sed 's/^.*|'"$(echo "$layout" | wc -l)"':\([0-9 ]\+\)|.*$/\1/')
+
+    from_num=1
+    for num in $rule; do
+        to_num=$((from_num+num-1))
+        args=$(echo "$desktops" |
+            cut -c"$from_num-$to_num" |
+            sed 's/\([0-9]\)/\1 /g;s/ $/ /')
+        monitor=$(echo "$layout" | head -n 1)
+        layout=$(echo "$layout" | grep -v "$monitor")
+        bspc monitor "$monitor" -d $args
+        from_num=$((from_num+num))
+    done
+}
+
+toggle_floating(){
+    if [ "$(bspc query -N -n .focused.floating -d focused)" ]; then
+      bspc node focused.floating -t tiled
+    else
+      bspc node focused.tiled -t floating
+    fi
+}
+
+toggle_fullscreen(){
+    if [ "$(bspc query -N -n .focused.fullscreen -d focused)" ]; then
+      bspc node focused.fullscreen -t tiled
+    else
+      bspc node focused.tiled -t fullscreen
+    fi
+}
+
+toggle_hide(){
+    hidden_nodes=$(bspc query -N -n .hidden -d focused)
+    if [ "$hidden_nodes" ]; then
+        nodes="$hidden_nodes"
+        value="off"
+    else
+        nodes=$(bspc query -N -n .tiled -d focused)
+        nodes=$(echo "$nodes" | grep -v "$(bspc query -N -n focused)")
+        value="on"
+    fi
+    for node in $nodes; do
+      bspc node $node -g hidden="$value"
+    done
+}
+
+cmd=$(echo $1 | tr '-' '_')
+$cmd
