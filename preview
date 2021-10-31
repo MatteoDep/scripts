@@ -1,0 +1,153 @@
+#!/bin/sh
+
+disp_text(){
+    bat --color=always --wrap=never --pager=never --style=numbers,changes "$1"
+}
+
+disp_dir(){
+    lsd --tree --depth=1 --color=always --icon=always "$file"
+}
+
+draw(){
+    [ -p "$FIFO_UEBERZUG" ] && {
+        printf '{ "action": "add", "identifier": "%s", "path": "%s",' "$ID_UEBERZUG" "$1"
+        printf '"x": %d, "y": %d, "scaler": "fit_contain",' "$x" "$y"
+        printf '"width": %d, "height": %d} \n' "$w" "$h"
+    } > "$FIFO_UEBERZUG"
+}
+
+play_gif(){
+    convert -coalesce "$1" "$tmpimg" || return 1
+    first=1
+    for frame in $(ls -1 $tmpimg_noext*.png | sort -V); do
+        draw "$frame" || return 1
+        sleep .07
+        if [ $first ]; then
+            mv "$frame" "$tmpimg"
+            first=
+        else
+            rm "$frame"
+        fi
+    done
+    draw "$tmpimg"
+}
+
+clean() {
+    [ -p "$FIFO_UEBERZUG" ] &&
+        printf '{ "action": "remove", "identifier": "%s" }\n' "$ID_UEBERZUG" > "$FIFO_UEBERZUG"
+}
+
+usage(){
+    echo "Usage: previewer [-h] file"
+}
+
+while getopts "g:ch" option
+do
+	case "${option}" in
+        g)
+            geometry=$OPTARG
+            w=$(echo "$geometry" | cut -d 'x' -f 1)
+            h=$(echo "$geometry" | sed 's/^.*x\([0-9]\+\)+.*$/\1/')
+            x=$(echo "$geometry" | sed 's/^.*+\([0-9]\+\)+.*$/\1/')
+            y=$(echo "$geometry" | cut -d '+' -f 3)
+            ;;
+        c)
+            clean
+            exit
+            ;;
+		h)
+            usage
+            exit
+            ;;
+		*)
+            echo "Unknown option '$option'!" 1>&2
+            usage >&2
+            exit 1
+            ;;
+	esac
+done
+shift $((OPTIND-1))
+
+file="$PWD/${1##*/}"
+tmpimg_noext="/tmp/preview-img"
+tmpimg="$tmpimg_noext.png"
+
+if [ -d "$file" ]; then
+    disp_dir
+else
+    case "$file" in
+        *.pdf)
+            pdftoppm -png -f 1 -singlefile "$file" "$tmpimg_noext" &&
+            draw "$tmpimg" ||
+            pdftotext -nopgbrk "$file" -
+            ;;
+        *.epub)
+            epub-thumbnailer "$file" "$tmpimg" 1024 &&
+            draw "$tmpimg"
+            ;;
+        *.xopp)
+            xournalpp-thumbnailer "$file" "$tmpimg" &&
+            draw "$tmpimg"
+            ;;
+        *.avi|*.mp4|*.wmv|*.dat|*.3gp|*.ogv|*.mkv|*.mpg|*.mpeg|*.vob|*.fl[icv]|*.m2v|*.mov|*.webm|*.ts|*.mts|*.m4v|*.r[am]|*.qt|*.divx|*.as[fx])
+            ffmpegthumbnailer -i "$file" -o "$tmpimg" -s 0 -q 10 &&
+            draw "$tmpimg" ||
+            ffprobe -pretty "$file" 2>&1
+            ;;
+        *.bmp|*.jpg|*.jpeg|*.png|*.xpm)
+            draw "$file" ||
+            identify "$file"
+            ;;
+        *.gif)
+            play_gif "$file" ||
+            identify "$file"
+            ;;
+        *.ico|*.svg)
+            convert -thumbnail $(identify -format "%wx%h" "$file") "$file" "$tmpimg" &&
+            draw "$tmpimg" ||
+            identify "$file"
+            ;;
+        *.mp3)
+            mp3info
+            ;;
+        *.flac)
+            soxi
+            ;;
+        *.[1-8])
+            man ./"$file" | col -b
+            ;;
+        *.torrent)
+            dumptorrent -v "$file"
+            ;;
+        *.zip|*.jar|*.war|*.ear|*.oxt)
+            zip -sf "$file"
+            ;;
+        *.tgz|*.tar.gz)
+            tar -tzf "$file"
+            ;;
+        *.tar.bz2|*.tbz2)
+            tar -tjf "$file"
+            ;;
+        *.tar.txz|*.txz)
+            xz --list "$file"
+            ;;
+        *.tar)
+            tar -tf "$file"
+            ;;
+        *.rar)
+            unrar v "$file"
+            ;;
+        *.7z)
+            7z l "$file"
+            ;;
+        *.doc)
+            catdoc "$file"
+            ;;
+        *.docx)
+            docx2txt.pl "$file" -
+            ;;
+        *)
+            disp_text "$file"
+            ;;
+    esac
+fi

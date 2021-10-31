@@ -74,7 +74,7 @@ if [ ! $debug ]; then
     --blur 5 \
     --clock \
     --indicator \
-    --time-str="%H:%M:%S" \
+    --time-str="%H:%M" \
     --date-str="%Y %b %d (%a)" \
     --pass-media \
     --image="$cache_img"
