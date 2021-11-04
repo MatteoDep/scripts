@@ -5,7 +5,7 @@ maxlength=30
 wtitle=$(xdotool getwindowname "$(xdotool getwindowfocus)")
 [ "$(echo "$wtitle" | cut -c"$((maxlength+1))")" ] && wtitleshort=$(echo "$wtitle" | cut -c1-"$maxlength")"..." || wtitleshort="$wtitle"
 
-cmd1='%{A1:notify-send "'"$wtitle"'":}'
+cmd1='%{A1:notify-send "'"$(echo $wtitle | sed 's/:/\\:/g')"'":}'
 closecmd='%{A}'
 
 echo "$cmd1$wtitleshort$closecmd"
