@@ -4,9 +4,10 @@ options="lock
 suspend
 hibernate
 poweroff
-reboot"
+reboot
+logout"
 
-choice=$(echo "$options" | dmenu -p "select: ")
+choice=$(echo "$options" | dmenu -p "select:")
 
 case "$choice" in
     "lock") lock;;
@@ -14,5 +15,6 @@ case "$choice" in
     "hibernate") loginctl hibernate;;
     "poweroff") loginctl poweroff;;
     "reboot") loginctl reboot;;
+    "logout") loginctl terminate-session self;;
     *) exit
 esac

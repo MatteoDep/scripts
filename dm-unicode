@@ -1,10 +1,10 @@
-#!/bin/sh
+cursorColocursorColorr#!/bin/sh
 
 # The famous "get a menu of emojis to copy" script.
 
 # Get user selection via dmenu from emoji file.
 iconsfile="$HOME/.local/share/icons"
-chosen=$(cut -d ';' -f1 "$iconsfile" | dmenu -i -l 30 | sed "s/ .*//")
+chosen=$(cut -d ';' -f1 "$iconsfile" | dmenu -i -l 30 -p "select icon:" | sed "s/ .*//")
 
 # Exit if none chosen.
 [ -z "$chosen" ] && exit
