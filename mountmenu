@@ -24,22 +24,26 @@ getmtp() {
 
 mountusb() {
     # try to mount without mountpoint (if in fstab will succed)
-	sudo -A mount "$1" 2>/dev/null && notify "  $1 mounted." && exit 0
-	exclude_args=$(lsblk -nrpo "name,mountpoint" | awk '$1!~/'"$exclude_exp"'/&&length($2)>1{printf "-not ( -path *%s -prune ) ",$2}')
-	getmtp "/mnt /media /mount /home -maxdepth 5 -type d $exclude_args"
-	partitiontype="$(lsblk -no "fstype" "$1")"
-	case "$partitiontype" in
-		"vfat") echo hey
-            sudo -A mount -t vfat "$1" "$mp" -o rw,umask=0000
-            ;;
-		"exfat")
-            sudo -A mount "$1" "$mp" -o uid="$(id -u)",gid="$(id -g)"
-            ;;
-		*) sudo -A mount "$1" "$mp"; user="$(whoami)"; ug="$(groups | awk '{print $1}')"; sudo -A chown "$user":"$ug" "$mp";;
-	esac
-	if [ "$?" -gt 0 ]; then
-        notify "  could not mount $1."
+    err=$(sudo -A mount "$1" 2>&1)
+    if echo "$err" | grep -i 'password'; then
         exit 1
+    elif [ "$err" ]; then
+        exclude_args=$(lsblk -nrpo "name,mountpoint" | awk '$1!~/'"$exclude_exp"'/&&length($2)>1{printf "-not ( -path *%s -prune ) ",$2}')
+        getmtp "/mnt /media /mount /home -maxdepth 5 -type d $exclude_args"
+        partitiontype="$(lsblk -no "fstype" "$1")"
+        case "$partitiontype" in
+            "vfat") echo hey
+                sudo -A mount -t vfat "$1" "$mp" -o rw,umask=0000
+                ;;
+            "exfat")
+                sudo -A mount "$1" "$mp" -o uid="$(id -u)",gid="$(id -g)"
+                ;;
+            *) sudo -A mount "$1" "$mp"; user="$(whoami)"; ug="$(groups | awk '{print $1}')"; sudo -A chown "$user":"$ug" "$mp";;
+        esac
+        if [ "$?" -gt 0 ]; then
+            notify "  could not mount $1."
+            exit 1
+        fi
     fi
     notify "  $1 mounted to $mp."
 }
@@ -54,7 +58,7 @@ mountandroid() {
             notify " could not mount Android device."
             exit 1
         fi
-    else
+    elif [ "$err" ]; then
         notify " could not mount Android device."
         exit 1
     fi
@@ -66,7 +70,7 @@ unmountusb() {
 }
 
 unmountandroid() {
-	sudo -A umount -l "$1" && notify-send " Android Android unmounting" "$1 unmounted."
+	fusermount -u "$1" && notify-send " Android Android unmounting" "$1 unmounted."
 }
 
 exclude_exp=$(lsblk -nrpo "name,mountpoint" | awk '$2=="/"{print $1}' | sed 's/[0-9]$//;s/\//\\\//g')
