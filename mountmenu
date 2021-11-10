@@ -46,14 +46,19 @@ mountusb() {
 
 mountandroid() {
 	getmtp "$HOME -maxdepth 3 -type d"
-    simple-mtpfs --device "$1" "$mp"
-	echo "OK" | dmenu -i -p "Tap Allow on your phone if it asks for permission and then press enter" || exit 1
-	simple-mtpfs --device "$1" "$mp"
-	if [ "$?" -gt 0 ]; then
+    err=$(simple-mtpfs --device "$1" "$mp" 2>&1)
+	if echo "$err" | grep -i 'device storage'; then
+        echo "continue" | dmenu -p "Allow file transfer on your phone before continuing ..." || exit 1
+        simple-mtpfs --device "$1" "$mp"
+        if [ "$?" -gt 0 ]; then
+            notify " could not mount Android device."
+            exit 1
+        fi
+    else
         notify " could not mount Android device."
         exit 1
     fi
-	notify " Android device mounted to $mp."
+    notify " Android device mounted to $mp."
 }
 
 unmountusb() {
@@ -67,15 +72,34 @@ unmountandroid() {
 exclude_exp=$(lsblk -nrpo "name,mountpoint" | awk '$2=="/"{print $1}' | sed 's/[0-9]$//;s/\//\\\//g')
 android_devs=$(simple-mtpfs -l 2>/dev/null | sed 's/://')
 usb_devs=$(lsblk -nrpo "name,size,mountpoint" | awk '$1!~/'"$exclude_exp"'/&&$3==""{printf "%s (%s)\n",$1,$2}')
-mounted=$(lsblk -nrpo "name,size,mountpoint" | awk '$1!~/'"$exclude_exp"'/&&length($3)>1{printf "%s (%s)\n",$3,$2}')
+usb_mounted=$(lsblk -nrpo "name,size,mountpoint" | awk '$1!~/'"$exclude_exp"'/&&length($3)>1{printf "%s (%s)\n",$3,$2}')
+android_mounted=$(sed -n 's/^simple-mtpfs\s\+\(.*\)fuse.simple-mtpfs.*/\1 (Android device)/p' /etc/mtab)
+
+# check that android devices are not already mounted
+if [ "$android_mounted" ]; then
+    num_dev=$(echo "$android_devs" | wc -l)
+    num_mounted=$(echo "$android_mounted" | wc -l)
+    if [ $num_dev -gt $num_mounted ]; then
+        for dev in "$(echo "$android_devs" | awk '{print $1}')"; do
+            err=$(simple-mtpfs --device "$dev" "$mp" 2>&1)
+            if echo "$err" | grep 'NULL device'; then
+                android_devs=$(echo "$android_devs" | grep -v "^$dev ")
+            fi
+            exit
+        done
+    else
+        unset android_devs
+    fi
+fi
 
 choices=$([ "$android_devs" ] && echo "$android_devs" | sed 's/^/mount /'
     [ "$usb_devs" ] && echo "$usb_devs" | sed 's/^/mount /'
-    [ "$mounted" ] && echo "$mounted" | sed 's/^/unmount /')
+    [ "$android_mounted" ] && echo "$android_mounted" | sed 's/^/unmount /'
+    [ "$usb_mounted" ] && echo "$usb_mounted" | sed 's/^/unmount /'
+)
 
 echo "$choices" | dmenu -p "select action:" | while read action chosen
 do
-    echo "$chosen"
 	dev="$(echo "$chosen" | awk '{print $1}')"
     case "$action" in
         mount)
@@ -86,7 +110,7 @@ do
             fi
             ;;
         unmount)
-            if grep simple-mtpfs /etc/mtab | grep "$chosen"; then
+            if echo "$android_mounted" | grep "$chosen"; then
                 unmountandroid "$dev"
             else
                 unmountusb "$dev"
