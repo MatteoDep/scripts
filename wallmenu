@@ -1,0 +1,58 @@
+#!/bin/sh
+
+wallfile="$HOME/.local/share/wallpaper"
+walldir="$HOME/media/wallpapers"
+dm=
+
+# just refresh wallpaper
+if [ "$1" = "--restore" ]; then
+    cat "$wallfile" | xargs xwallpaper --zoom
+    exit
+fi
+
+if [ "$1" = "--dm" ]; then
+    dm=1
+    shift
+fi
+
+set_wall_dm(){
+    sudo -A cp "$img" "/usr/share/pixmaps/background"
+    notify-send "wallmenu" "updated login background"
+}
+
+set_wall(){
+    echo "$(realpath "$img")" >"$wallfile" && wallmenu --restore
+}
+
+# get argument
+if [ -f "$1" ]; then
+    img="$1"
+else
+    if [ -d "$1" ]; then
+        walldir="$1"
+    elif [ ! -z "$1" ]; then
+        echo "Could not parse argument $1" >&2
+        exit 1
+    fi
+    imgs=$(find -L "$walldir" -type f)
+    mode=$(printf "random\nchoose" | dmenu -p "(wallmenu) choose mode:")
+    case $mode in
+        random)
+            img=$(echo "$imgs" | shuf -n 1)
+            ;;
+        choose)
+            notify-send "wallmenu" "select xwallpaper with 'm' and press 'q' to exit"
+            img=$(echo "$imgs" | sxiv -tio)
+    esac
+fi
+
+if [ $dm ]; then
+    set_wall_dm
+else
+    set_wall
+    notify-send "wallmenu" "Set $img as wallpaper"
+    ans=$(printf "yes\nno" | dmenu -p "Do you want to update login screen background?")
+    if [ "$ans" = "yes" ]; then
+        set_wall_dm || notify-send "wallmenu" "Authentication failed. Check if \$SUDO_ASKPASS is set correctly."
+    fi
+fi
