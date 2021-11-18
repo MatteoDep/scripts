@@ -24,18 +24,18 @@ auto_set_desktops(){
 }
 
 toggle_floating(){
-    if [ "$(bspc query -N -n .focused.floating -d focused)" ]; then
+    if bspc query -N -n .focused.floating -d focused; then
       bspc node focused.floating -t tiled
     else
-      bspc node focused.tiled -t floating
+      bspc node focused -t floating
     fi
 }
 
 toggle_fullscreen(){
-    if [ "$(bspc query -N -n .focused.fullscreen -d focused)" ]; then
+    if bspc query -N -n .focused.fullscreen -d focused; then
       bspc node focused.fullscreen -t tiled
     else
-      bspc node focused.tiled -t fullscreen
+      bspc node focused -t fullscreen
     fi
 }
 
