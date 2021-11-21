@@ -1,0 +1,19 @@
+#!/bin/sh
+
+set -eu
+
+from_wallpaper="generate from wallpaper"
+
+choices=$(echo "$from_wallpaper"
+    flavours list -l
+)
+
+theme=$(echo "$choices" | dmenu -p "choose theme:")
+
+if [ "$theme" = "$from_wallpaper" ]; then
+    mode=$(printf "dark\nlight" | dmenu -p "dark or light?")
+    flavours generate "$mode" "$(cat "${XDG_DATA_HOME:-$HOME/.local/share}/wallpaper")"
+    theme="generated"
+fi
+
+flavours apply "$theme"

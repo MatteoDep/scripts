@@ -27,23 +27,25 @@ do
 	# Get its remaining capacity and charge status.
 	capacity=$(cat "$battery"/capacity 2>/dev/null) || break
 	status=$(sed "s/[Dd]ischarging//;s/[Nn]ot charging/$notch/;s/[Cc]harging/$charg/;s/[Uu]nknown/$stag/;s/[Ff]ull/$full/" "$battery"/status)
-    [ -f "$tmpfilelow" ] && [ "$status" = "$charg" ] && rm "$tmpfilelow"
-    [ -f "$tmpfilehigh" ] && [ -z "$status" ] && rm "$tmpfilehigh"
-    [ "$capacity" -ge 85 ] && [ "$status" = "$charg" ] && {
-        [ -f "$tmpfilehigh" ] || {
+    [ -f "$tmpfilelow" -a "$status" = "$charg" ] && rm "$tmpfilelow"
+    [ -f "$tmpfilehigh" -a -z "$status" ] && rm "$tmpfilehigh"
+    if [ "$capacity" -ge 85 -a "$status" = "$charg" -a ! -f "$tmpfilehigh" ]; then
             touch "$tmpfilehigh"
             notify-send "Unplug Laptop!" "The battery is charged enough,
 charging further could decresase battery life."
-        }
-    }
+    fi
 
     case $(( $capacity/25 )) in
-        0) cap=$bat0; [ -z "$status" ] && {
-            status=$warn && [ -f "$tmpfilelow" ] || {
+        0)
+            cap=$bat0
+            if [ -z "$status" ]; then
+                status=$warn
+                if [ ! -f "$tmpfilelow" ]; then
                     touch "$tmpfilelow"
                     notify-send -u "critical" "LOW BATTERY"
-                }
-            };;
+                fi
+            fi
+            ;;
         1) cap=$bat1;;
         2) cap=$bat2;;
         3) cap=$bat3;;

@@ -1,0 +1,23 @@
+#!/bin/sh
+
+while [ -z $stop ]; do
+    ans=$(dmenu -p ">" | bc -l)
+    choices="copy\nclear\nquit"
+    choice=$(printf "$choices" | dmenu -p "= $ans")
+    case $choice in
+        copy)
+            printf "$ans" | xclip -sel clip
+            notify-send "bcmenu" "'$ans' copied to clipboard."
+            stop=1
+            ;;
+        clear)
+            ;;
+        quit)
+            stop=1
+            ;;
+        *)
+            stop=1
+            notify-send "bcmenu" "unrecognized option '$choice'."
+            ;;
+    esac
+done
