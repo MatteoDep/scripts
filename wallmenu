@@ -55,4 +55,8 @@ else
     if [ "$ans" = "yes" ]; then
         set_wall_dm || notify-send "wallmenu" "Authentication failed. Check if \$SUDO_ASKPASS is set correctly."
     fi
+    ans=$(printf "yes\nno" | dmenu -p "Do you want to generate a matching colorscheme?")
+    if [ "$ans" = "yes" ]; then
+        flavoursmenu --generate
+    fi
 fi
