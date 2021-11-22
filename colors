@@ -1,0 +1,36 @@
+#!/bin/sh
+
+echo "BASE16 COLORS"
+
+base16order="base00 0
+base01 19
+base02 18
+base03 8
+base04 20
+base05 7
+base06 21
+base07 15
+base08 1
+base09 16
+base0A 3
+base0B 2
+base0C 6
+base0D 4
+base0E 5
+base0F 17"
+echo "$base16order" | while read name n
+do
+    n=$(expr $n)
+    printf "$name $(tput setaf $n)%s$(tput sgr0)\n" ""
+done
+
+echo "TERMINAL COLORS"
+
+n=0
+space=" "
+while [ $n -le 21 ]; do
+    [ $n -eq 10 ] && space=""
+    printf "color%d $space$(tput setaf $n)%s$(tput sgr0)\n" $n ""
+    [ $n -eq 7 -o $n -eq 15 ] && echo
+    n=$((n+1))
+done
