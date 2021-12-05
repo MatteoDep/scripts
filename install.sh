@@ -3,7 +3,7 @@
 dest_dir="$HOME/.local/bin"
 
 for f in $(ls -A "$PWD"); do
-    if [ -f "$f" -a -x "$f" -a ! -e "$PWD/$f" ]; then
+    if [ -f "$f" -a -x "$f" -a ! -e "$dest_dir/$f" ]; then
         echo "linking $f"
         ln -srf "$PWD/$f" "$dest_dir/$f"
     fi

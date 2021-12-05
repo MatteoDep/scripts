@@ -73,10 +73,10 @@ unmountandroid() {
 	fusermount -u "$1" && notify-send " Android Android unmounting" "$1 unmounted."
 }
 
-exclude_exp=$(lsblk -nrpo "name,mountpoint" | awk '$2=="/"{print $1}' | sed 's/[0-9]$//;s/\//\\\//g')
+exclude_regex=".*nvme0n1.*"
 android_devs=$(simple-mtpfs -l 2>/dev/null | sed 's/://')
-usb_devs=$(lsblk -nrpo "name,size,mountpoint" | awk '$1!~/'"$exclude_exp"'/&&$3==""{printf "%s (%s)\n",$1,$2}')
-usb_mounted=$(lsblk -nrpo "name,size,mountpoint" | awk '$1!~/'"$exclude_exp"'/&&length($3)>1{printf "%s (%s)\n",$3,$2}')
+usb_devs=$(lsblk -nrpo "name,size,mountpoint" | awk '$1!~/'"$exclude_regex"'/&&$3=="" {printf "%s (%s)\n",$1,$2}')
+usb_mounted=$(lsblk -nrpo "name,size,mountpoint" | awk '$1!~/'"$exclude_regex"'/&&length($3)>1 {printf "%s (%s)\n",$3,$2}')
 android_mounted=$(sed -n 's/^simple-mtpfs\s\+\(.*\)fuse.simple-mtpfs.*/\1 (Android device)/p' /etc/mtab)
 
 # check that android devices are not already mounted

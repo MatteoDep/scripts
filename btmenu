@@ -31,7 +31,7 @@ power_off() {
 
 power_on() {
     if bluetooth | grep 'off'; then
-        sudo -A bluetooth on
+        sudo -A rfkill unblock bluetooth
     fi
     echo "power on" | _bluetoothctl
     notify "Turned on bluetooth"
@@ -61,21 +61,25 @@ connect_disconnect() {
     [ -z $name ] && exit 0 || printf 'power on\n' | _bluetoothctl
 
     # scan new device
-    [ "$name" = "$scan" ] && [ "$mode" = "connect" ] && {
-        gotit=0
-        while [ "$gotit" -eq "0" ]; do
+    if [ "$name" = "$scan" ] && [ "$mode" = "connect" ]; then
+        while [ -z "$gotit" ]; do
             devices=$(get_new_devices)
             options=$(echo "retry"; printf "$devices" | cut -d' ' -f2-)
             name=$(printf "$options" | dmenu -p "choose device: " -l 10)
-            [ -z $name ] && echo "HEY" && {power_off; exit 1}
-            [ "$name" = "retry" ] || gotit=1
+            if [ -z "$name" ]; then
+                power_off
+                exit 1
+            elif [ "$name" != "retry" ]; then
+                gotit=1
+            fi
         done
         mac=$(echo $devices | grep "$name" | cut -d' ' -f1)
-        printf 'pair %s\ntrust %s\n' "$mac" "$mac" | _bluetoothctl
-    }
+        printf 'trust %s\npair %s\n' "$mac" "$mac" | _bluetoothctl
+    else
+        mac=$(printf "$devices" | grep "$name" | cut -d' ' -f1)
+    fi
 
     # try to cennect/disconnect iteratively
-    mac=$(printf "$devices" | grep "$name" | cut -d' ' -f1)
     notify "Attempting to $mode $preposition $name"
     i=1
     while [ "$i" -ne "$retries" ]; do
@@ -94,7 +98,7 @@ connect_disconnect() {
     # case of failure
     ret="$?"
     power_off
-    notify "Failed to $mode $preposition $name. Try `sudo bluetooth on`." "critical"
+    notify "Failed to $mode $preposition $name. Try "'`sudo rfkill unblock bluetooth`.' "critical"
     return "$ret"
 }
 

@@ -11,10 +11,10 @@ choice=$(echo "$options" | dmenu -p "select:")
 
 case "$choice" in
     "lock") lock;;
-    "suspend") loginctl suspend;;
-    "hibernate") loginctl hibernate;;
-    "poweroff") loginctl poweroff;;
-    "reboot") loginctl reboot;;
+    "suspend") systemctl suspend;;
+    "hibernate") systemctl hibernate;;
+    "poweroff") systemctl poweroff;;
+    "reboot") systemctl reboot;;
     "logout") loginctl terminate-session self;;
     *) exit
 esac

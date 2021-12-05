@@ -1,7 +1,8 @@
 #!/bin/sh
 
-light_file="/sys/class/backlight/intel_backlight/brightness"
-max_light=$(cat /sys/class/backlight/intel_backlight/max_brightness)
+name=$(ls /sys/class/backlight)
+light_file="/sys/class/backlight/$name/brightness"
+max_light=$(cat "/sys/class/backlight/$name/max_brightness")
 light=$(cat $light_file)
 
 case "$1" in

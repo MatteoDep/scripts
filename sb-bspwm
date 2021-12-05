@@ -1,0 +1,113 @@
+#! /bin/sh
+
+colors=$(xrdb -query)
+
+FOREGROUND=$(echo "$colors" | awk '/foreground:/ {print $2}')
+BACKGROUND=$(echo "$colors" | awk '/background:/ {print $2}')
+FADE=$(echo "$colors" | awk '/fadeColor:/ {print $2}')
+RED=$(echo "$colors" | awk '/color1:/ {print $2}')
+GREEN=$(echo "$colors" | awk '/color2:/ {print $2}')
+BLUE=$(echo "$colors" | awk '/color6:/ {print $2}')
+PURPLE=$(echo "$colors" | awk '/color5:/ {print $2}')
+
+num_mon=$(bspc query -M | wc -l)
+line=$(bspc subscribe -c 1 report)
+
+case $line in
+    W*)
+        # bspwm's state
+        wm=""
+        IFS=':'
+        set -- ${line#?}
+        while [ $# -gt 0 ] ; do
+            item=$1
+            name=${item#?}
+            case $item in
+                [mM]*)
+                    case $item in
+                        m*)
+                            # monitor
+                            FG=$FOREGROUND
+                            BG=$FADE
+                            on_focused_monitor=
+                            ;;
+                        M*)
+                            # focused monitor
+                            FG=$FOREGROUND
+                            BG=$PURPLE
+                            on_focused_monitor=1
+                            ;;
+                    esac
+                    [ $num_mon -lt 2 ] && on_focused_monitor=1 && shift && continue
+                    wm="${wm}%{F${FG}}%{B${BG}}%{A:bspc monitor -f ${name}:} ${name} %{A}%{B-}%{F-}"
+                    ;;
+                [fFoOuU]*)
+                    case $item in
+                        f*)
+                            # free desktop
+                            shift && continue
+                            ;;
+                        F*)
+                            if [ "$on_focused_monitor" ] ; then
+                                # focused free desktop
+                                FG=$BACKGROUND
+                                BG=$BLUE
+                                UL=$BACKGROUND
+                            else
+                                # active free desktop
+                                FG=$FOREGROUND
+                                BG=$BACKGROUND
+                                UL=$BLUE
+                            fi
+                            ;;
+                        o*)
+                            # occupied desktop
+                            FG=$FOREGROUND
+                            BG=$FADE
+                            UL=$BACKGROUND
+                            ;;
+                        O*)
+                            if [ "$on_focused_monitor" ] ; then
+                                # focused occupied desktop
+                                FG=$BACKGROUND
+                                BG=$BLUE
+                                UL=$BACKGROUND
+                            else
+                                # active occupied desktop
+                                FG=$FOREGROUND
+                                BG=$FADE
+                                UL=$BLUE
+                            fi
+                            ;;
+                        u*)
+                            # urgent desktop
+                            FG=$FOREGROUND
+                            BG=$RED
+                            UL=$BACKGROUND
+                            ;;
+                        U*)
+                            if [ "$on_focused_monitor" ] ; then
+                                # focused urgent desktop
+                                FG=$FOREGROUND
+                                BG=$RED
+                                UL=$BACKGROUND
+                            else
+                                # active urgent desktop
+                                FG=$FOREGROUND
+                                BG=$RED
+                                UL=$RED
+                            fi
+                            ;;
+                    esac
+                    wm="${wm}%{F${FG}}%{B${BG}}%{U${UL}}%{+u}%{A:bspc desktop -f ${name}:} ${name} %{A}%{B-}%{F-}%{-u}"
+                    ;;
+                L*)
+                    # layout
+                    wm="${wm}%{F${GREEN}} ${name} %{F-}"
+                    ;;
+            esac
+            shift
+        done
+        ;;
+esac
+echo "$wm"
