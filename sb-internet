@@ -8,14 +8,18 @@ ethup=''
 wifidown='睊'
 ethdown=''
 
-cmd1='%{A1:setsid -f "$TERMINAL" --class=floatterm -e connmanctl:}'
-en_dis_able=$(connmanctl technologies | sed -n '/ = wifi/{n;p}' | sed 's/^.*True$/disable/;s/^.*False$/enable/')
-cmd3='%{A3:connmanctl '"$en_dis_able"' wifi && notify-send "'"$en_dis_able"'ed wifi":}'
+cmd1='%{A1:setsid -f "$TERMINAL" --class=floatterm -e nmtui:}'
 closecmd='%{A}'
 
 case "$(cat /sys/class/net/w*/operstate 2>/dev/null)" in
-	down) wifi=$wifidown ;;
-	up) wifi="$(awk '/^\s*w/ { print "'"$wifiup"'" int($3 * 100 / 70) "%" }' /proc/net/wireless)" ;;
+	down)
+        wifi=$wifidown
+        cmd3='%{A3:nmcli radio wifi on && notify-send "Enabled wifi":}'
+        ;;
+	up)
+        wifi="$(awk '/^\s*w/ { print "'"$wifiup"'" int($3 * 100 / 70) "%" }' /proc/net/wireless)"
+        cmd3='%{A3:nmcli radio wifi off; notify-send "Disabled wifi":}'
+        ;;
 esac
 eth=$(sed "s/down/$ethdown/;s/up/$ethup/" /sys/class/net/e*/operstate 2>/dev/null)
 

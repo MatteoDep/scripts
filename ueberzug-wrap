@@ -10,7 +10,7 @@ if [ -z "$(whereis ueberzug | awk '{print $2}')" ]; then
 elif [ -z "$DISPLAY" ]; then
 	sh -c "$@" && exit
 else
-    trap stop_ueberzug EXIT QUIT INT TERM
+    trap stop_ueberzug EXIT QUIT INT TERM KILL
     cachedir=$(echo "$HOME/.cache/$1" | sed 's/ //g')
 	[ ! -d "$cachedir" ] && mkdir --parents "$cachedir"
 	export ID_UEBERZUG="ueberzug-preview-$1-${PPID}"

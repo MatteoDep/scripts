@@ -13,8 +13,8 @@ bat1=''
 bat2=''
 bat3=''
 bat4=''
-cmd4='%{A4:backlight -i 2:}'
-cmd5='%{A5:backlight -d 2:}'
+cmd4='%{A4:backlightctl -i 2:}'
+cmd5='%{A5:backlightctl -d 2:}'
 closecmd='%{A}'
 
 tmpfilelow="/tmp/notifying-low-battery"

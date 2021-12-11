@@ -6,7 +6,7 @@ high="墳"
 medium="奔"
 low="奄"
 
-cmd1='%{A1:setsid -f "$TERMINAL" --class floatterm -e pulsemixer; until pidof pulsemixer; do pkill -RTMIN+10 statusblocks; sleep 1; done:}'
+cmd1='%{A1:pavucontrol &; until pidof pavucontrol; do pkill -RTMIN+10 statusblocks; sleep 1; done:}'
 cmd3='%{A3:pamixer -t; pkill -RTMIN+10 statusblocks:}'
 cmd4='%{A4:pamixer --allow-boost -i 1; pkill -RTMIN+10 statusblocks:}'
 cmd5='%{A5:pamixer --allow-boost -d 1; pkill -RTMIN+10 statusblocks:}'
@@ -23,7 +23,7 @@ else
     else
         icon="$medium"
     fi
-    vol="$vol"'%'
+    vol="$vol%"
 fi
 
 echo "$cmd1$cmd3$cmd4$cmd5$icon$vol$closecmd$closecmd$closecmd$closecmd"
