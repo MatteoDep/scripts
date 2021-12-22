@@ -1,7 +1,10 @@
 #!/bin/sh
 
 while [ -z $stop ]; do
-    ans=$(dmenu -p ">" | bc -l)
+    eq=$(dmenu -p "calculate >")
+    [ -z "$eq" ] && exit 1
+    ans=$(echo "$eq" | bc -l)
+    echo $?
     choices="copy\nclear\nquit"
     choice=$(printf "$choices" | dmenu -p "= $ans")
     case $choice in

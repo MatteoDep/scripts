@@ -11,7 +11,7 @@ endtime=20
 
 cachefile="${XDG_CACHE_HOME:-~/.cache}"/sb-news-cache
 printnews(){
-    echo "$error$cmd1$cmd3$icon$news$closecmd$closecmd"
+    echo "$cmd1$cmd3$error$icon$news$closecmd$closecmd"
 }
 
 if [ "$(pgrep newsboat)" ]; then

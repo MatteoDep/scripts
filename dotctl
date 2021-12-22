@@ -1,0 +1,48 @@
+#!/bin/sh
+
+dotfiles_dir="${DOTFILES_DIR:-"$HOME/.dotfiles"}"
+trashdir="$XDG_DATA_HOME"/trash
+
+usage(){
+    echo "Usage: dotctl add|remove file1 file2 ..."
+}
+
+add(){
+    for i in "$@"; do
+        [ -n "$i" ] && {
+            full=$(realpath "$i")
+            relative="${full#"$HOME/"}"
+            mkdir -p "$(dirname "$dotfiles_dir/$relative")"
+            mv "$full" "$dotfiles_dir/$relative"
+            ln -s "$dotfiles_dir/$relative" "$full"
+        }
+    done
+}
+
+remove(){
+    for i in "$@"; do
+        [ -n "$i" ] && {
+            full=$(realpath -s "$i")
+            relative="${full#"$HOME/"}"
+            if [ -e "$dotfiles_dir/$relative" ]; then
+                mv "$full" "$trashdir/"
+                mv "$dotfiles_dir/$relative" "$full"
+            else
+                echo "Skipping $i as is not synched!"
+            fi
+        }
+    done
+}
+
+case "$1" in
+    add)
+        add
+        ;;
+    remove)
+        remove
+        ;;
+    *)
+        [ -z "$1" ] && echo "Please specify command."
+        usage
+        ;;
+esac

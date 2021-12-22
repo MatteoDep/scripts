@@ -2,7 +2,6 @@
 
 options="lock
 suspend
-hibernate
 poweroff
 reboot
 logout"
@@ -12,7 +11,6 @@ choice=$(echo "$options" | dmenu -p "select:")
 case "$choice" in
     "lock") lock;;
     "suspend") systemctl suspend;;
-    "hibernate") systemctl hibernate;;
     "poweroff") systemctl poweroff;;
     "reboot") systemctl reboot;;
     "logout") loginctl terminate-session self;;
