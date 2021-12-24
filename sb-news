@@ -8,23 +8,18 @@ cmd1='%{A1:setsid -f "$TERMINAL" --class floatterm -e newsboat:}'
 cmd3='%{A3:pkill -RTMIN+6 statusblocks:}'
 closecmd='%{A}'
 endtime=20
+error=
 
 cachefile="${XDG_CACHE_HOME:-~/.cache}"/sb-news-cache
 printnews(){
     echo "$cmd1$cmd3$error$icon$news$closecmd$closecmd"
 }
 
-if [ "$(pgrep newsboat)" ]; then
-    cat "$cachefile"
-else
-    msg=$(timeout "$endtime" newsboat -x reload)
-    err=$?
-    if [ "$msg" ]; then
-        cat "$cachefile"
-        exit
-    elif [ "$err" -gt 0 ]; then
-        error=""
-    fi
-    news=$(newsboat -x print-unread 2>/dev/null | awk '{print $1}')
-    printnews | tee "$cachefile"
+if timeout "$endtime" newsboat -x reload; then
+    newsboat -x print-unread 2>/dev/null | awk '{print $1}' > "$cachefile"
 fi
+
+ping -c 1 archlinux.org 2>&1 >/dev/null || error=""
+
+news=$(cat "$cachefile")
+printnews

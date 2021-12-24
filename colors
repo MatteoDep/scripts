@@ -18,10 +18,12 @@ base0C 6
 base0D 4
 base0E 5
 base0F 17"
+
+bar="██████████████████████"
 echo "$base16order" | while read name n
 do
     n=$(expr $n)
-    printf "$name $(tput setaf $n)%s$(tput sgr0)\n" "▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉"
+    printf "$name $(tput setaf $n)%s$(tput sgr0)\n" $bar
 done
 
 echo "TERMINAL COLORS"
@@ -30,7 +32,7 @@ n=0
 space=" "
 while [ $n -le 21 ]; do
     [ $n -eq 10 ] && space=""
-    printf "color%d $space$(tput setaf $n)%s$(tput sgr0)\n" $n "▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉"
+    printf "color%d $space$(tput setaf $n)%s$(tput sgr0)\n" $n $bar
     [ $n -eq 7 -o $n -eq 15 ] && echo
     n=$((n+1))
 done
