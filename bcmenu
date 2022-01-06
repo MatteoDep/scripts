@@ -20,7 +20,7 @@ while [ -z $stop ]; do
             ;;
         *)
             stop=1
-            notify-send "bcmenu" "unrecognized option '$choice'."
+            [ "$choice" ] && notify-send "bcmenu" "unrecognized option '$choice'."
             ;;
     esac
 done

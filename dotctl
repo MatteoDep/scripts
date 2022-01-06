@@ -8,25 +8,23 @@ usage(){
 }
 
 add(){
-    for i in "$@"; do
-        [ -n "$i" ] && {
-            full=$(realpath "$i")
-            relative="${full#"$HOME/"}"
-            mkdir -p "$(dirname "$dotfiles_dir/$relative")"
-            mv "$full" "$dotfiles_dir/$relative"
-            ln -s "$dotfiles_dir/$relative" "$full"
-        }
+    for i in $@; do
+        src=$(realpath "$i")
+        dst="$dotfiles_dir/${src#$HOME/}"
+        mkdir -p "$(dirname "$dst")"
+        mv "$src" "$dst"
+        ln -s "$dst" "$src"
     done
 }
 
 remove(){
-    for i in "$@"; do
+    for i in $@; do
         [ -n "$i" ] && {
-            full=$(realpath -s "$i")
-            relative="${full#"$HOME/"}"
-            if [ -e "$dotfiles_dir/$relative" ]; then
-                mv "$full" "$trashdir/"
-                mv "$dotfiles_dir/$relative" "$full"
+            src=$(realpath -s "$i")
+            dst="$dotfiles_dir/${src#$HOME/}"
+            if [ -e "$dst" ]; then
+                mv "$src" "$trashdir/"
+                mv "$dst" "$src"
             else
                 echo "Skipping $i as is not synched!"
             fi
@@ -36,10 +34,12 @@ remove(){
 
 case "$1" in
     add)
-        add
+        shift
+        add $@
         ;;
     remove)
-        remove
+        shift
+        remove $@
         ;;
     *)
         [ -z "$1" ] && echo "Please specify command."
