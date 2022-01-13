@@ -1,3 +1,5 @@
 #!/bin/sh
 
-scrot $@ ~/media/screenshots/%Y-%m-%d-%T-screenshot.png
+screenshots_dir=~/media/screenshots
+mkdir -p "$screenshots_dir"
+scrot $@ "$screenshots_dir/%Y-%m-%d-%T-screenshot.png"

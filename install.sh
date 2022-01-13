@@ -1,13 +1,18 @@
 #!/bin/sh
 
-dest_dir="$HOME/.local/bin"
+bin_dir="$HOME/.local/bin"
+if [ "$@" ]; then
+    args=$@
+else
+    args=$(ls -A "$PWD")
+fi
 
-for f in $(ls -A "$PWD"); do
+for f in $args; do
     if [ -f "$f" ] &&
         [ -x "$f" ] &&
-        [ ! -e "$dest_dir/$f" ] &&
+        [ ! -e "$bin_dir/$f" ] &&
         [ "$f" != "$(basename "$0")" ]; then
         echo "linking $f"
-        ln -srf "$PWD/$f" "$dest_dir/$f"
+        ln -srf "$PWD/$f" "$bin_dir/$f"
     fi
 done
