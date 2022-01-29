@@ -2,4 +2,4 @@
 
 screenshots_dir=~/media/screenshots
 mkdir -p "$screenshots_dir"
-scrot $@ "$screenshots_dir/%Y-%m-%d-%T-screenshot.png"
+maim $@ "$screenshots_dir/$(date +'%Y-%m-%d-%T')-screenshot.png"
