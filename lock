@@ -30,6 +30,7 @@ create_cache_img(){
             \( "$curr_img" -resize "${width}x${height}^" -gravity center -extent "${width}x${height}^" \) \
             -gravity northwest \
             -geometry "+${xoff}+${yoff}" -composite "$cache_img"
+        convert "$cache_img" -blur 30x10 "$cache_img"
         [ $debug ] && sxiv "$cache_img"
     done
 }
