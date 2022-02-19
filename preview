@@ -5,7 +5,7 @@ disp_text(){
 }
 
 disp_dir(){
-    lsd --tree --group-dirs first --depth=2 --color=always --icon=always "$file"
+    exa -a --tree --level=3 --git --group-directories-first --icons --color=always "$1"
 }
 
 draw(){
@@ -73,7 +73,7 @@ tmpimg_noext="/tmp/preview-img"
 tmpimg="$tmpimg_noext.png"
 
 if [ -d "$file" ]; then
-    disp_dir
+    disp_dir "$file"
 else
     case "$file" in
         *.pdf)
