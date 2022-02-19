@@ -11,19 +11,21 @@
 
 file=$(readlink -f "$1")
 dir=${file%/*}
-base="${file%.*}"
-ext="${file##*.}"
 
 cd "$dir" || exit 1
 
-textype() { \
+file="${file##*/}"
+base="${file%.*}"
+ext="${file##*.}"
+
+textype() {
 	command="pdflatex"
 	( head -n5 "$file" | grep -qi 'xelatex' ) && command="xelatex"
-	$command --output-directory="$dir" "$base" &&
-	grep -qi addbibresource "$file" &&
-	biber --input-directory "$dir" "$base" &&
-	$command --output-directory="$dir" "$base" &&
-	$command --output-directory="$dir" "$base"
+	$command "$base" &&
+	grep -qi '\\bib' "$file" &&
+	bibtex "$base" &&
+	$command "$base" &&
+	$command "$base"
 }
 
 case "$ext" in
@@ -39,6 +41,6 @@ case "$ext" in
 	org) emacs "$file" --batch -u "$USER" -f org-latex-export-to-pdf ;;
 	rs) cargo build ;;
 	sass) sassc -a "$file" "$base.css" ;;
-	tex) textype "$file" ;;
+	tex) textype ;;
 	*) head -n1 "$file" | grep "^#!/" | sed "s/^#!//" | xargs -r -I % "$file" ;;
 esac
