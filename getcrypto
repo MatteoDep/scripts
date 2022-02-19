@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # icons file
-iconsfile="${XDG_DATA_HOME:-$HOME/.local/share}/icons"
+iconsfile="${XDG_DATA_HOME:-$HOME/.local/share}/unicode-list"
 
 # temporary file
 tmpfile=/tmp/cryptocharts

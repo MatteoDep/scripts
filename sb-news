@@ -15,11 +15,11 @@ printnews(){
     echo "$cmd1$cmd3$error$icon$news$closecmd$closecmd"
 }
 
-if timeout "$endtime" newsboat -x reload 2>1 >/dev/null; then
+if timeout "$endtime" newsboat -x reload 2>&1 >/dev/null; then
     newsboat -x print-unread 2>/dev/null | awk '{print $1}' > "$cachefile"
 fi
 
-ping -c 1 8.8.8.8 2>1 >/dev/null || error=""
+ping -c 1 8.8.8.8 2>&1 >/dev/null || error=""
 
 news=$(cat "$cachefile")
 printnews

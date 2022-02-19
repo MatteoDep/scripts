@@ -57,7 +57,7 @@ connect_disconnect() {
     devices=$(get_devices)
     scan="scan for new device"
     options=$(printf "$devices" | cut -d' ' -f2-; echo "$scan")
-    name=$(printf "$options" | dmenu -p "choose device: " -l 10)
+    name=$(printf "$options" | dmenu -ip "choose device: " -l 10)
     [ -z $name ] && exit 0 || printf 'power on\n' | _bluetoothctl
 
     # scan new device
@@ -65,7 +65,7 @@ connect_disconnect() {
         while [ -z "$gotit" ]; do
             devices=$(get_new_devices)
             options=$(echo "retry"; printf "$devices" | cut -d' ' -f2-)
-            name=$(printf "$options" | dmenu -p "choose device: " -l 10)
+            name=$(printf "$options" | dmenu -ip "choose device: " -l 10)
             if [ -z "$name" ]; then
                 power_off
                 exit 1
@@ -126,6 +126,6 @@ modes="connect
 disconnect
 power off"
 
-choice=$(printf "$modes" | dmenu -l 10 -p "choose action: ")
+choice=$(printf "$modes" | dmenu -il 10 -p "choose action: ")
 
 execute_mode "$choice"
