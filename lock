@@ -2,12 +2,12 @@
 
 colors=$(xrdb -query)
 
-white=$(echo "$colors" | awk '/foreground:/ {print $2}')
-blue=$(echo "$colors" | awk '/color4:/ {print $2}')
-black=$(echo "$colors" | awk '/background:/ {print $2}')
-red=$(echo "$colors" | awk '/color1:/ {print $2}')
-green=$(echo "$colors" | awk '/color2:/ {print $2}')
-lightblue=$(echo "$colors" | awk '/color6:/ {print $2}')
+white=$(echo "$colors" | awk '/foreground:/ {print $2}' | head -n 1)
+blue=$(echo "$colors" | awk '/color4:/ {print $2}' | head -n 1)
+black=$(echo "$colors" | awk '/background:/ {print $2}' | head -n 1)
+red=$(echo "$colors" | awk '/color1:/ {print $2}' | head -n 1)
+green=$(echo "$colors" | awk '/color2:/ {print $2}' | head -n 1)
+lightblue=$(echo "$colors" | awk '/color6:/ {print $2}' | head -n 1)
 
 cache_file="${XDG_CACHE_HOME:-"$HOME/.cache"}"/lock-info
 cache_img="${XDG_CACHE_HOME:-"$HOME/.cache"}"/lock-img.jpg
@@ -31,7 +31,7 @@ create_cache_img(){
             -gravity northwest \
             -geometry "+${xoff}+${yoff}" -composite "$cache_img"
         convert "$cache_img" -blur 30x10 "$cache_img"
-        [ $debug ] && sxiv "$cache_img"
+        [ $debug ] && nsxiv "$cache_img"
     done
 }
 

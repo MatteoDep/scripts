@@ -2,13 +2,13 @@
 
 colors=$(xrdb -query)
 
-FOREGROUND=$(echo "$colors" | awk '/foreground:/ {print $2}')
-BACKGROUND=$(echo "$colors" | awk '/background:/ {print $2}')
-FADE=$(echo "$colors" | awk '/fadeColor:/ {print $2}')
-RED=$(echo "$colors" | awk '/color1:/ {print $2}')
-GREEN=$(echo "$colors" | awk '/color2:/ {print $2}')
-BLUE=$(echo "$colors" | awk '/color6:/ {print $2}')
-PURPLE=$(echo "$colors" | awk '/color5:/ {print $2}')
+FOREGROUND=$(echo "$colors" | awk '/foreground:/ {print $2}' | head -n 1)
+BACKGROUND=$(echo "$colors" | awk '/background:/ {print $2}' | head -n 1)
+FADE=$(echo "$colors" | awk '/fadeColor:/ {print $2}' | head -n 1)
+RED=$(echo "$colors" | awk '/color1:/ {print $2}' | head -n 1)
+GREEN=$(echo "$colors" | awk '/color2:/ {print $2}' | head -n 1)
+BLUE=$(echo "$colors" | awk '/color6:/ {print $2}' | head -n 1)
+PURPLE=$(echo "$colors" | awk '/color5:/ {print $2}' | head -n 1)
 
 num_mon=$(bspc query -M | wc -l)
 line=$(bspc subscribe -c 1 report)

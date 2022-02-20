@@ -1,4 +1,4 @@
-#!/bin/sh
+#g/bin/sh
 
 wallfile="$HOME/.local/share/wallpaper"
 walldir="$HOME/media/wallpapers"
@@ -42,7 +42,7 @@ else
             ;;
         choose)
             notify-send "wallmenu" "select xwallpaper with 'm' and press 'q' to exit"
-            img=$(echo "$imgs" | sxiv -tio)
+            img=$(echo "$imgs" | nsxiv -tio)
     esac
 fi
 

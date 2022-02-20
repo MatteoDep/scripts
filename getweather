@@ -4,7 +4,7 @@ usage(){
     echo "getweather [-h] [<location>]
 get weather report of specified location. If no location argument is given the ip address info will be used.
 v   data rich output with more informations. (incompatible with '-m' and '-f')
-m   show weather map in sxiv. (incompatible with '-v' and '-f')
+m   show weather map in nsxiv. (incompatible with '-v' and '-f')
 f   specify output format, using the notation specified below.
 h   print this message and exit.
 format options:
@@ -57,7 +57,7 @@ shift $((OPTIND-1))
 
 if [ "$prefix" = 'v3.' ]; then
     curl -s --output "$tmpimg" "${prefix}wttr.in/$location$formatstr$suffix"
-    setsid -f sxiv "$tmpimg"
+    setsid -f nsxiv "$tmpimg"
 elif [ -z "$formatstr" ]; then
     curl -s "${prefix}wttr.in/$location$formatstr$suffix" > "$tmpfile"
     less -SRf "$tmpfile"

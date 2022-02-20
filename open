@@ -16,7 +16,7 @@ for file in "$*"; do
             mpv "$file" &
             ;;
         *.bmp|*.jpg|*.jpeg|*.png|*.gif|*.xpm)
-            sxiv "$*" &
+            nsxiv "$*" &
             exit
             ;;
         *.odt|*.doc|*.docx|*.xls|*.xlsx|*.odp|*.pptx)

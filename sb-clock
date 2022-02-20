@@ -7,6 +7,6 @@ cmd3='%{A3:aps=$(calcurse -d3); notify-send "$([ $aps ] || echo -n "No ")Appoint
 closecmd='%{A}'
 
 datetime=$(date "+%Y %b %d (%a) %I:%M%p")
-GREEN=$(xrdb -query | awk '/color2:/ {print $2}')
+GREEN=$(xrdb -query | awk '/color2:/ {print $2}' | head -n 1)
 
 echo "$cmd1$cmd3%{U$GREEN}%{+o}$datetime%{-o}$closecmd$closecmd"
