@@ -1,0 +1,157 @@
+#!/bin/sh
+
+choices="single
+add monitor
+remove monitor
+map tablet
+restore
+load
+save
+quit"
+add_options="same-as
+above
+below
+left-of
+right-of"
+tablet_monitor_file="${XDG_DATA_HOME:-"$HOME/.local/share"}"/tablet-monitor
+xrandr_args_file="${XDG_DATA_HOME:-"$HOME/.local/share"}"/monitor-xrandr-args
+
+# get monitors
+get_monitors(){
+    monitors=$(xrandr -q | awk '/\s+connected.*/ {print $1}')
+    active_monitors=$(xrandr --listactivemonitors | awk '/^\s*[0-9]+:/ {print $4}')
+    embedded_monitor=$(echo "$monitors" | grep -i 'edp')
+}
+
+single(){
+    args="--output $embedded_monitor --primary --auto"
+    xrandr_args="$args \\"
+    for monitor in $monitors; do
+        [ "$monitor" != "$embedded_monitor" ] &&
+            xrandr_args=$(echo "$xrandr_args"; echo "    --output $monitor --off \\")
+    done
+    apply
+    active_monitors="$embedded_monitor"
+}
+
+add_monitor(){
+    addable_monitors=$(for m in $monitors; do
+            echo "$active_monitors" | grep -q "$m" || echo "$m"
+        done)
+    if [ -z "$addable_monitors" ]; then
+        notify-send "xrandrmenu" "There are no connected monitors that can be added!"
+        return
+    fi
+    monitor=$(echo "$addable_monitors" | dmenu -p 'choose monitor: ')
+    [ -z "$monitor" ] && return
+    pos=$(echo "$add_options" | dmenu -p 'choose mode: ')
+    [ -z "$pos" ] && return
+    target_monitor=$(echo "$active_monitors" | dmenu -p 'choose target monitor: ')
+    [ -z "$target_monitor" ] && return
+    [ "$monitor" = "$embedded_monitor" ] && primary="--primary" || primary=""
+    args="--output $monitor --auto $primary --$pos $target_monitor"
+    xrandr_args=$(echo "$xrandr_args" | sed 's/^\(\s\+\)--output\s\+'"$monitor"'\s.*\\$/\1'"$args"' \\/')
+    apply
+    active_monitors="$active_monitors
+$monitor"
+}
+
+remove_monitor(){
+    removable_monitors=$(for m in $monitors; do
+            echo "$active_monitors" | grep "$m"
+        done)
+    if [ "$(echo "$removable_monitors" | wc -l)" -le 1 ]; then
+        notify-send "xrandrmenu" "Only one monitor left! Operation cancelled."
+        return
+    fi
+    monitor=$(echo "$removable_monitors" | dmenu -p 'choose monitor: ')
+    [ -z "$monitor" ] && return
+    args="--output $monitor --off"
+    xrandr_args=$(echo "$xrandr_args" | sed 's/^\(\s\+\)--output\s\+'"$monitor"'\s.*\\$/\1'"$args"' \\/')
+    for pos in $add_options; do
+        xrandr_args=$(echo "$xrandr_args" | sed 's/--'"$pos"'\s\+'"$monitor"'//;s/\s\+/ /g')
+    done
+    apply
+    active_monitors=$(echo "$active_monitors" | grep -v "$monitor")
+}
+
+map_tablet(){
+    if [ "$1" ]; then
+        tablet_monitor="$1"
+    else
+        tablet_monitor=$(echo "$active_monitors" | dmenu -p 'choose monitor: ')
+    fi
+    xsetwacom set "$(xsetwacom --list | awk '/stylus/ {print $8}')" maptooutput "$tablet_monitor"
+    xsetwacom set "$(xsetwacom --list | awk '/eraser/ {print $8}')" maptooutput "$tablet_monitor"
+}
+
+load(){
+    notify-send "xrandrmenu" "The function is not yet implemented."
+}
+
+save(){
+    notify-send "xrandrmenu" "The function is not yet implemented."
+}
+
+apply(){
+    echo "$xrandr_args" | tee "$xrandr_args_file"
+    echo "$tablet_monitor" | tee "$tablet_monitor_file"
+    echo "$xrandr_args" | tr -d '\\' | sed 's/\s\+/ /g' | xargs xrandr
+}
+
+restore(){
+    apply
+    map_tablet "$tablet_monitor"
+}
+
+menu_loop(){
+    while [ -z "$quit" ]; do
+        get_monitors
+        choice=$(echo "$choices" | dmenu -p 'choose action: ')
+        case "$choice" in
+            'single')
+                single
+                ;;
+            'add monitor')
+                add_monitor
+                ;;
+            'remove monitor')
+                remove_monitor
+                ;;
+            'map tablet')
+                map_tablet
+                ;;
+            'restore')
+                restore
+                ;;
+            'load')
+                load
+                ;;
+            'save')
+                save
+                ;;
+            'quit')
+                exit
+                ;;
+            *)
+                [ "$choice" ] && notify-send "unknown option $choice"
+                exit 1
+                ;;
+        esac
+    done
+}
+
+if [ -e "$xrandr_args_file" -a -e "$tablet_monitor_file" ]; then
+    tablet_monitor=$(cat "$tablet_monitor_file")
+    xrandr_args=$(cat "$xrandr_args_file")
+else
+    get_monitors
+    single
+    map_tablet "$embedded_monitor"
+fi
+
+if [ "$1" = "--restore" ]; then
+    restore
+else
+    menu_loop
+fi
