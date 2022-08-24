@@ -52,5 +52,5 @@ charging further could decresase battery life."
         4) cap=$bat4;;
     esac
 
-	echo "$cmd4$cmd5$status$cap$capacity%$closecmd$closecmd"
+	echo "$cmd4$cmd5$status$cap$capacity%%$closecmd$closecmd"
 done

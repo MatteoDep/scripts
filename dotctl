@@ -1,7 +1,6 @@
 #!/bin/sh
 
 dotfiles_dir="${DOTFILES_DIR:-"$HOME/.dotfiles"}"
-trashdir="$XDG_DATA_HOME"/trash
 
 usage(){
     echo "Usage: dotctl add|remove file1 file2 ..."
@@ -23,7 +22,7 @@ remove(){
             src=$(realpath -s "$i")
             dst="$dotfiles_dir/${src#$HOME/}"
             if [ -e "$dst" ]; then
-                mv "$src" "$trashdir/"
+                trash-put "$src"
                 mv "$dst" "$src"
             else
                 echo "Skipping $i as is not synched!"

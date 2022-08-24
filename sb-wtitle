@@ -1,6 +1,6 @@
 #!/bin/sh
 
-maxlength=30
+maxlength=50
 
 wtitle=$(xdotool getwindowname "$(xdotool getwindowfocus)")
 [ "$(echo "$wtitle" | cut -c"$((maxlength+1))")" ] && wtitleshort=$(echo "$wtitle" | cut -c1-"$maxlength")"..." || wtitleshort="$wtitle"

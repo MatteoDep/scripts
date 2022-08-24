@@ -1,4 +1,5 @@
 #!/bin/sh
+pidof 'i3lock' && exit 1
 
 colors=$(xrdb -query)
 
@@ -24,7 +25,7 @@ create_cache_img(){
     screendims=$(xdpyinfo |
         sed -n 's/^\s*dimensions:\s*\([0-9]\+x[0-9]\+\).*$/\1/p')
     convert -size "$screendims" xc:skyblue "$cache_img"
-    echo "$curr_geometries" | while read width height xoff yoff
+    echo "$curr_geometries" | while read -r width height xoff yoff
     do
         convert "$cache_img" \
             \( "$curr_img" -resize "${width}x${height}^" -gravity center -extent "${width}x${height}^" \) \
@@ -36,10 +37,9 @@ create_cache_img(){
 }
 
 if [ -f "$cache_file" ]; then
-    IFS=',' read old_img old_geometries < "$cache_file"
+    IFS=',' read -r old_img old_geometries < "$cache_file"
     old_geometries=$(echo "$old_geometries" | tr '|' '\n')
-    if [ "$old_img" != "$curr_img" \
-        -o "$old_geometries" != "$curr_geometries" ]
+    if [ "$old_img" != "$curr_img" ] || [ "$old_geometries" != "$curr_geometries" ]
     then
         create_cache_img
         echo "$curr_img,$(echo "$curr_geometries" | tr '\n' '|')" > "$cache_file"

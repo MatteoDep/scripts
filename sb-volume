@@ -12,7 +12,7 @@ cmd4='%{A4:pamixer --allow-boost -i 1 && pkill -RTMIN+10 statusblocks:}'
 cmd5='%{A5:pamixer --allow-boost -d 1 && pkill -RTMIN+10 statusblocks:}'
 closecmd='%{A}'
 
-if [ $(pamixer --get-mute) = true ]; then
+if [ "$(pamixer --get-mute)" = "true" ]; then
     vol=$muted
 else
     vol="$(pamixer --get-volume)"
@@ -23,7 +23,7 @@ else
     else
         icon="$medium"
     fi
-    vol="$vol%"
+    vol="$vol%%"
 fi
 
 echo "$cmd1$cmd3$cmd4$cmd5$icon$vol$closecmd$closecmd$closecmd$closecmd"

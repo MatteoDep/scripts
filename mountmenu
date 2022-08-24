@@ -83,8 +83,8 @@ android_mounted=$(sed -n 's/^simple-mtpfs\s\+\(.*\)fuse.simple-mtpfs.*/\1 (Andro
 if [ "$android_mounted" ]; then
     num_dev=$(echo "$android_devs" | wc -l)
     num_mounted=$(echo "$android_mounted" | wc -l)
-    if [ $num_dev -gt $num_mounted ]; then
-        for dev in "$(echo "$android_devs" | awk '{print $1}')"; do
+    if [ "$num_dev" -gt "$num_mounted" ]; then
+        for dev in $(echo "$android_devs" | awk '{print $1}'); do
             err=$(simple-mtpfs --device "$dev" "$mp" 2>&1)
             if echo "$err" | grep 'NULL device'; then
                 android_devs=$(echo "$android_devs" | grep -v "^$dev ")
@@ -102,7 +102,7 @@ choices=$([ "$android_devs" ] && echo "$android_devs" | sed 's/^/mount /'
     [ "$usb_mounted" ] && echo "$usb_mounted" | sed 's/^/unmount /'
 )
 
-echo "$choices" | dmenu -p "select action:" | while read action chosen
+echo "$choices" | dmenu -p "select action:" | while read -r action chosen
 do
 	dev="$(echo "$chosen" | awk '{print $1}')"
     case "$action" in

@@ -4,12 +4,6 @@ layout_dir="$HOME/.screenlayout"
 current_layout_script="${XDG_DATA_HOME:-"$HOME/.local/share"}/current-layout"
 tablet_monitor_file="${XDG_DATA_HOME:-"$HOME/.local/share"}/tablet-monitor"
 
-if [ -f "$tablet_monitor_file" ]; then
-    tablet_monitor=$(cat "$tablet_monitor_file")
-else
-    tablet_monitor="$(get_monitors | grep -i 'edp')"
-fi
-
 # get monitors
 get_monitors(){
     xrandr -q | awk '/\s+connected.*/ {print $1}'
@@ -27,10 +21,8 @@ map_tablet(){
 }
 
 run(){
-    if sh "$1"; then
-        exit 0
-    else
-        notify-send -u critical "xrandrmenu" "Something went wrong!\nConnected monitors:\n$(get_monitors)"
+    if ! sh "$1"; then
+        notify_err "Could not run script '$1'"
         exit 1
     fi
 }
@@ -41,10 +33,11 @@ restore(){
 }
 
 apply(){
-    if run "$1"; then
-        ln -s "$1" "$current_layout_script"
-        echo "$tablet_monitor" | tee "$tablet_monitor_file"
-    fi
+    layout_script="$layout_dir/$1.sh"
+    run "$layout_script"
+    notify "Screen layout changed to '$1'"
+    ln -sf "$layout_script" "$current_layout_script"
+    echo "$tablet_monitor" > "$tablet_monitor_file"
 }
 
 notify(){
@@ -59,7 +52,7 @@ menu_loop(){
     while [ -z "$quit" ]; do
         layouts=$(find "$layout_dir" -executable -type f -exec basename {} \; | sed 's/\.sh//')
         choices="$layouts\ncreate new layout\nrestore\nmap tablet\nquit"
-        choice=$(echo "$choices" | dmenu -p 'choose action: ')
+        choice=$(echo "$choices" | rofi -dmenu -p 'choose action: ' -mesg "$mesg")
         case "$choice" in
             'create new layout')
                 notify "Save new layout in '~/.screenlayout' and exit Arandr"
@@ -75,9 +68,8 @@ menu_loop(){
                 exit
                 ;;
             *)
-                layout_script="$layout_dir/$choice.sh"
-                if [ -x "$layout_script" ]; then
-                    apply "$layout_script"
+                if echo "$choices" | grep -q "$choice"; then
+                    apply "$choice"
                 else
                     notify_err "Invalid option $choice"
                     exit 1
@@ -86,6 +78,13 @@ menu_loop(){
         esac
     done
 }
+
+if [ -f "$tablet_monitor_file" ]; then
+    tablet_monitor=$(cat "$tablet_monitor_file")
+else
+    tablet_monitor="$(get_monitors | grep -i 'edp')"
+fi
+mesg="Connected monitors:$(printf '\n'; get_monitors | sed 's/^/\t/')"
 
 if [ "$1" = "--restore" ]; then
     restore

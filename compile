@@ -38,7 +38,6 @@ case "$ext" in
 	md)	pandoc -o "$base".pdf "$file";;
 	mom) preconv "$file" | refer -PS -e | groff -mom -kept -T pdf > "$base".pdf ;;
 	ms) preconv "$file" | refer -PS -e | groff -me -ms -kept -T pdf > "$base".pdf ;;
-	org) emacs "$file" --batch -u "$USER" -f org-latex-export-to-pdf ;;
 	rs) cargo build ;;
 	sass) sassc -a "$file" "$base.css" ;;
 	tex) textype ;;

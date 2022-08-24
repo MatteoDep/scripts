@@ -1,0 +1,36 @@
+#!/bin/sh
+
+zathura_hist="${XDG_DATA_HOME:-"$HOME/.local/share"}/zathura/history"
+desktops_dump=$(mktemp)
+wids=$(xdotool search --class Zathura)
+
+[ "$wids" ] || exit 1
+
+names=$(echo "$wids" |
+    xargs -n 1 xdotool getwindowname |
+    grep -v 'org.pwmt.zathura'
+)
+
+echo "$wids" |
+    xargs -n 1 xdotool get_desktop_for_window 2>/dev/null |
+    awk '/^[0-9]\+$/{print $1+1}' > "$desktops_dump"
+    # grep -v '\-1'
+
+files=$(echo "$names" |
+    xargs -I '#' sh -c 'grep ".*#.*" '"$zathura_hist"' | tail -n 1' |
+    sed -e 's/\[\(.*\)\]/\1/'
+)
+
+# kill and reopen
+killall zathura
+echo "$files" | xargs -n 1 setsid -f zathura
+
+# move to previous desktops
+echo "$names" |
+    xargs -n 1 xdotool search --name |
+    paste - "$desktops_dump" |
+    while read wid desktop; do
+        echo "$wid $desktop"
+        xdotool windowactivate "$wid"
+        xdotool key --clearmodifiers "super+shift+$desktop"
+    done
