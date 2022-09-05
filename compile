@@ -11,6 +11,7 @@
 
 file=$(readlink -f "$1")
 dir=${file%/*}
+start_dir="$PWD"
 
 cd "$dir" || exit 1
 
@@ -19,10 +20,18 @@ base="${file%.*}"
 ext="${file##*.}"
 
 textype() {
+	cd "$start_dir" || exit 1
+	if [ -f main.tex ]; then
+		file="main.tex"
+		base="main"
+	else
+		printf "main.tex not found. Running on %s\n" "$file"
+		cd "$dir" || exit 1
+	fi
 	command="pdflatex"
 	( head -n5 "$file" | grep -qi 'xelatex' ) && command="xelatex"
 	$command "$base" &&
-	grep -qi '\\bib' "$file" &&
+	grep -v '^\%' "$file" | grep -qi '\\bib' &&
 	bibtex "$base" &&
 	$command "$base" &&
 	$command "$base"
