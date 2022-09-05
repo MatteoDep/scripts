@@ -68,7 +68,8 @@ do
 done
 shift $((OPTIND-1))
 
-file="$PWD/${1##*/}"
+# file="$PWD/${1##*/}"
+file="$1"
 tmpimg_noext="/tmp/preview-img"
 tmpimg="$tmpimg_noext.png"
 
