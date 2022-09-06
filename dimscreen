@@ -1,0 +1,18 @@
+#!/bin/bash
+
+# Example notifier script -- lowers screen brightness, then waits to be killed
+# and restores previous brightness on exit.
+
+## CONFIGURATION ##############################################################
+
+min_brightness=0
+fade_time=200
+fade_steps=20
+
+###############################################################################
+
+trap 'exit 0' TERM INT
+trap 'xbacklight -set '"$(xbacklight -get); kill %%" EXIT
+xbacklight -time $fade_time -steps $fade_steps -set $min_brightness
+sleep 2147483647 &
+wait
