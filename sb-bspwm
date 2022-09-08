@@ -7,7 +7,7 @@ BACKGROUND=$(echo "$colors" | awk '/background:/ {print $2}' | head -n 1)
 FADE=$(echo "$colors" | awk '/fadeColor:/ {print $2}' | head -n 1)
 RED=$(echo "$colors" | awk '/color1:/ {print $2}' | head -n 1)
 GREEN=$(echo "$colors" | awk '/color2:/ {print $2}' | head -n 1)
-BLUE=$(echo "$colors" | awk '/color6:/ {print $2}' | head -n 1)
+BLUE=$(echo "$colors" | awk '/color4:/ {print $2}' | head -n 1)
 PURPLE=$(echo "$colors" | awk '/color5:/ {print $2}' | head -n 1)
 
 num_mon=$(bspc query -M | wc -l)
