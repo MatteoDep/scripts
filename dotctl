@@ -1,47 +1,51 @@
 #!/bin/sh
 
-dotfiles_dir="${DOTFILES_DIR:-"$HOME/.dotfiles"}"
-
 usage(){
     echo "Usage: dotctl add|remove file1 file2 ..."
 }
 
 add(){
-    for i in $@; do
-        src=$(realpath "$i")
-        dst="$dotfiles_dir/${src#$HOME/}"
-        mkdir -p "$(dirname "$dst")"
-        mv "$src" "$dst"
-        ln -s "$dst" "$src"
-    done
+	mkdir -p "$(dirname "$dst")"
+	$sudocmd mv "$src" "$dst"
+	$sudocmd ln -s "$dst" "$src"
 }
 
 remove(){
-    for i in $@; do
-        [ -n "$i" ] && {
-            src=$(realpath -s "$i")
-            dst="$dotfiles_dir/${src#$HOME/}"
-            if [ -e "$dst" ]; then
-                trash-put "$src"
-                mv "$dst" "$src"
-            else
-                echo "Skipping $i as is not synched!"
-            fi
-        }
-    done
+	[ -n "$i" ] && {
+		if [ -e "$dst" ]; then
+			$sudocmd trash-put "$src"
+			$sudocmd mv "$dst" "$src"
+		else
+			echo "Skipping $i as is not synched!"
+		fi
+	}
 }
 
 case "$1" in
-    add)
+    add|remove)
+		command=$1
         shift
-        add $@
+		for i in "$@"; do
+			dotfiles_dir="${DOTFILES_DIR:-"$HOME/.dotfiles"}"
+			src=$(realpath -s "$i")
+			if echo "$src" | grep -q "$HOME"; then
+				dst="$dotfiles_dir/home/${src#"$HOME/"}"
+				sudocmd=
+			else
+				dst="$dotfiles_dir/root$src"
+				sudocmd=sudo
+			fi
+			echo "$i"
+			$command "$i"
+		done
         ;;
-    remove)
-        shift
-        remove $@
-        ;;
+	-h|--help|help)
+		usage
+		exit
+		;;
     *)
         [ -z "$1" ] && echo "Please specify command."
         usage
+		exit 1
         ;;
 esac
