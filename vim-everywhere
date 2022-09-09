@@ -1,0 +1,18 @@
+#!/bin/sh
+# open vim/nvim and copy output in clipboard when you save and exit
+
+n=0
+while [ -f "/tmp/vim-everywhere-$n" ]; do
+	n=$(( n + 1 ))
+done
+title="vim-everywhere-$n"
+tmpfile="/tmp/$title"
+
+setsid -f alacritty --class "floatterm" -t "$title" -e nvim "$tmpfile"
+
+sleep 1		# necessary to give time to draw window
+while xdotool search --name "vim-everywhere" >/dev/null; do
+	sleep 0.1
+done
+
+xclip -r -sel clip "$tmpfile"
