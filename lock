@@ -1,4 +1,10 @@
 #!/bin/sh
+# lock screen with i3lock with multimonitor support
+# depends on:
+# - imagemagick
+# - xrandr
+# - xset (xss-lock)
+
 pidof 'i3lock' && exit 1
 
 colors=$(xrdb -query)
@@ -14,69 +20,122 @@ cache_file="${XDG_CACHE_HOME:-"$HOME/.cache"}"/lock-info
 cache_img="${XDG_CACHE_HOME:-"$HOME/.cache"}"/lock-img.jpg
 curr_img=$(cat "${XDG_DATA_HOME:-"$HOME/.local/share"}"/wallpaper)
 curr_geometries=$(xrandr --listactivemonitors |
-        sed -n 's/^\s*[0-9]\+:.*\s\+\([0-9]\+\)\/[0-9]\+x\([0-9]\+\)\/[0-9]\++\([0-9]\+\)+\([0-9]\+\)\s.*$/\1 \2 \3 \4/p')
+		sed -n 's/^\s*[0-9]\+:.*\s\+\([0-9]\+\)\/[0-9]\+x\([0-9]\+\)\/[0-9]\++\([0-9]\+\)+\([0-9]\+\)\s.*$/\1 \2 \3 \4/p')
 
-if [ "$1" = '--debug' ]; then
-    rm "$cache_file"
-    debug=1
-fi
+usage(){
+	printf 'lock [-h|--help] [--debug|-d] [--screenoff|-s [seconds]]\n'
+}
+
+
+while [ "$1" ]; do
+	case "$1" in
+		-h|--help)
+			usage
+			exit
+			;;
+		--debug|-d)
+			rm "$cache_file"
+			debug=1
+			shift
+			;;
+		--screenoff|-s)
+			screenoff=1
+			shift
+			if [ "$1" ]; then
+				if echo "$1" | grep -q '^-'; then
+					dpmstmp=5
+				else
+					if echo "$1" | grep -q '^[0-9]*$'; then
+						dpmstmp="$1"
+					else
+						printf 'argument of --screenoff needs to be positive integer, not %s.\n' "$1"
+						exit 1
+					fi
+				fi
+				shift
+			else
+				dpmstmp=5
+			fi
+			;;
+		*)
+			if [ "$1" ]; then
+				usage
+				exit 1
+			fi
+			;;
+	esac
+done
+
 
 create_cache_img(){
-    screendims=$(xdpyinfo |
-        sed -n 's/^\s*dimensions:\s*\([0-9]\+x[0-9]\+\).*$/\1/p')
-    convert -size "$screendims" xc:skyblue "$cache_img"
-    echo "$curr_geometries" | while read -r width height xoff yoff
-    do
-        convert "$cache_img" \
-            \( "$curr_img" -resize "${width}x${height}^" -gravity center -extent "${width}x${height}^" \) \
-            -gravity northwest \
-            -geometry "+${xoff}+${yoff}" -composite "$cache_img"
-        convert "$cache_img" -blur 30x10 "$cache_img"
-        [ $debug ] && nsxiv "$cache_img"
-    done
+	screendims=$(xdpyinfo |
+		sed -n 's/^\s*dimensions:\s*\([0-9]\+x[0-9]\+\).*$/\1/p')
+	convert -size "$screendims" xc:skyblue "$cache_img"
+	echo "$curr_geometries" | while read -r width height xoff yoff
+	do
+		convert "$cache_img" \
+			\( "$curr_img" -resize "${width}x${height}^" -gravity center -extent "${width}x${height}^" \) \
+			-gravity northwest \
+			-geometry "+${xoff}+${yoff}" -composite "$cache_img"
+		convert "$cache_img" -blur 30x10 "$cache_img"
+		[ $debug ] && nsxiv "$cache_img"
+	done
 }
 
 if [ -f "$cache_file" ]; then
-    IFS=',' read -r old_img old_geometries < "$cache_file"
-    old_geometries=$(echo "$old_geometries" | tr '|' '\n')
-    if [ "$old_img" != "$curr_img" ] || [ "$old_geometries" != "$curr_geometries" ]
-    then
-        create_cache_img
-        echo "$curr_img,$(echo "$curr_geometries" | tr '\n' '|')" > "$cache_file"
-    else
-        echo "using cached version"
-    fi
+	IFS=',' read -r old_img old_geometries < "$cache_file"
+	old_geometries=$(echo "$old_geometries" | tr '|' '\n')
+	if [ "$old_img" != "$curr_img" ] || [ "$old_geometries" != "$curr_geometries" ]
+	then
+		create_cache_img
+		echo "$curr_img,$(echo "$curr_geometries" | tr '\n' '|')" > "$cache_file"
+	else
+		echo "using cached version"
+	fi
 else
-    create_cache_img
-    echo "$curr_img,$(echo "$curr_geometries" | tr '\n' '|')" > "$cache_file"
+	create_cache_img
+	echo "$curr_img,$(echo "$curr_geometries" | tr '\n' '|')" > "$cache_file"
+fi
+
+if [ "$screenoff" ]; then
+	screensaver_args=$(xset q | sed -n 's/\s*timeout:\s*\([0-9]*\)\s*cycle:\s*\([0-9]*\)/\1 \2/p')
+	dpms_args=$(xset q | sed -n 's/\s*Standby:\s*\([0-9]*\)\s*Suspend:\s*\([0-9]*\)\s*Off:\s*\([0-9]*\)/\1 \2 \3/p')
+	xset s off
+	xset dpms "$dpmstmp $dpmstmp $dpmstmp"
 fi
 
 if [ ! $debug ]; then
-    i3lock \
-    --insidever-color=$white \
-    --ringver-color=$lightblue \
-    \
-    --insidewrong-color=$white \
-    --ringwrong-color=$red \
-    \
-    --inside-color=$white \
-    --ring-color=$blue \
-    --line-color=$black \
-    --separator-color=$black \
-    \
-    --verif-color=$black \
-    --wrong-color=$black \
-    --time-color=$black \
-    --date-color=$black \
-    --keyhl-color=$green \
-    --bshl-color=$red \
-    \
-    --screen 1 \
-    --blur 5 \
-    --clock \
-    --indicator \
-    --time-str="%H:%M" \
-    --date-str="%Y %b %d (%a)" \
-    --pass-media \
-    --image="$cache_img"
+	i3lock \
+	--nofork \
+	--insidever-color="$white" \
+	--ringver-color="$lightblue" \
+	\
+	--insidewrong-color="$white" \
+	--ringwrong-color="$red" \
+	\
+	--inside-color="$white" \
+	--ring-color="$blue" \
+	--line-color="$black" \
+	--separator-color="$black" \
+	\
+	--verif-color="$black" \
+	--wrong-color="$black" \
+	--time-color="$black" \
+	--date-color="$black" \
+	--keyhl-color="$green" \
+	--bshl-color="$red" \
+	\
+	--screen 1 \
+	--clock \
+	--indicator \
+	--time-str="%H:%M" \
+	--date-str="%Y %b %d (%a)" \
+	--pass-media \
+	--image="$cache_img"
+fi
+
+if [ "$screenoff" ]; then
+	xset s on
+	xset s $screensaver_args
+	xset dpms $dpms_args
 fi
