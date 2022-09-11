@@ -9,7 +9,7 @@ logout"
 choice=$(echo "$options" | dmenu -p "select:")
 
 case "$choice" in
-    "lock") lock;;
+    "lock") lock -s;;
     "suspend") systemctl suspend;;
     "poweroff") systemctl poweroff;;
     "reboot") systemctl reboot;;
