@@ -5,7 +5,7 @@ disp_text(){
 }
 
 disp_dir(){
-    exa -a --tree --level=3 --git --group-directories-first --icons --color=always "$1"
+    exa -a --tree --level=2 --git --group-directories-first --icons --color=always "$1"
 }
 
 draw(){
