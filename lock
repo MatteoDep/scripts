@@ -22,6 +22,8 @@ curr_img=$(cat "${XDG_DATA_HOME:-"$HOME/.local/share"}"/wallpaper)
 curr_geometries=$(xrandr --listactivemonitors |
 		sed -n 's/^\s*[0-9]\+:.*\s\+\([0-9]\+\)\/[0-9]\+x\([0-9]\+\)\/[0-9]\++\([0-9]\+\)+\([0-9]\+\)\s.*$/\1 \2 \3 \4/p')
 
+default_dpms_tmp=10
+
 usage(){
 	printf 'lock [-h|--help] [--debug|-d] [--screenoff|-s [seconds]]\n'
 }
@@ -43,10 +45,10 @@ while [ "$1" ]; do
 			shift
 			if [ "$1" ]; then
 				if echo "$1" | grep -q '^-'; then
-					dpmstmp=5
+					dpms_tmp=$default_dpms_tmp
 				else
 					if echo "$1" | grep -q '^[0-9]*$'; then
-						dpmstmp="$1"
+						dpms_tmp="$1"
 					else
 						printf 'argument of --screenoff needs to be positive integer, not %s.\n' "$1"
 						exit 1
@@ -54,7 +56,7 @@ while [ "$1" ]; do
 				fi
 				shift
 			else
-				dpmstmp=5
+				dpms_tmp=$default_dpms_tmp
 			fi
 			;;
 		*)
@@ -101,7 +103,7 @@ if [ "$screenoff" ]; then
 	screensaver_args=$(xset q | sed -n 's/\s*timeout:\s*\([0-9]*\)\s*cycle:\s*\([0-9]*\)/\1 \2/p')
 	dpms_args=$(xset q | sed -n 's/\s*Standby:\s*\([0-9]*\)\s*Suspend:\s*\([0-9]*\)\s*Off:\s*\([0-9]*\)/\1 \2 \3/p')
 	xset s off
-	xset dpms "$dpmstmp $dpmstmp $dpmstmp"
+	xset dpms "$dpms_tmp $dpms_tmp $dpms_tmp"
 fi
 
 if [ ! $debug ]; then
