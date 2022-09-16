@@ -1,12 +1,12 @@
 #!/bin/sh
 
-options="lock
-suspend
-poweroff
-reboot
-logout"
+options="  lock
+鈴  suspend
+襤  poweroff
+勒  reboot
+  logout"
 
-choice=$(echo "$options" | dmenu -p "select:")
+choice=$(echo "$options" | dmenu -p "select:" | awk '{print $2}')
 
 case "$choice" in
     "lock") lock -s;;
