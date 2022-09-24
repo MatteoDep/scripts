@@ -20,15 +20,13 @@ base="${file%.*}"
 ext="${file##*.}"
 
 textype() {
+	mainfile=$(head -n 5 "$file" | sed -n 's/\\documentclass\[\(.*\)\]{subfiles}/\1/p')
 	cd "$start_dir" || exit 1
-	if [ -f main.tex ]; then
-		file="main.tex"
-		base="main"
-	else
-		printf "main.tex not found. Running on %s\n" "$file"
+	if [ ! -f "$mainfile" ]; then
 		cd "$dir" || exit 1
+		mainfile=$file
 	fi
-	latexmk -pdf -interaction=nonstopmode -synctex=1 "$file"
+	latexmk -pdf "$mainfile" && latexmk -c "$mainfile"
 }
 
 case "$ext" in
