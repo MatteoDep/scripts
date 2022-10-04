@@ -9,38 +9,42 @@
 # Note that .tex files which you wish to compile with XeLaTeX should have the
 # string "xelatex" somewhere in a comment/command in the first 5 lines.
 
+if [ "$1" = "--onlythis" ]; then
+	onlythis=1
+	shift
+else
+	onlythis=
+fi
+
 file=$(readlink -f "$1")
-dir=${file%/*}
-start_dir="$PWD"
 
-cd "$dir" || exit 1
-
-file="${file##*/}"
 base="${file%.*}"
 ext="${file##*.}"
+name="${file##*/}"
+namebase="${name%.*}"
+dir="${file%/*}"
 
 textype() {
-	mainfile=$(head -n 5 "$file" | sed -n 's/\\documentclass\[\(.*\)\]{subfiles}/\1/p')
-	cd "$start_dir" || exit 1
-	if [ ! -f "$mainfile" ]; then
-		cd "$dir" || exit 1
-		mainfile=$file
+	if [ -z "$onlythis" ]; then
+		mainfile=$(head -n 5 "$file" | sed -n 's/\\documentclass\[\(.*\)\]{subfiles}/\1/p')
+		[ -f "$mainfile" ] && file=$mainfile
 	fi
-	latexmk -pdf "$mainfile" && latexmk -c "$mainfile"
+	latexmk -pdf "$file" && latexmk -c "$file"
+	[ -f "$namebase.pdf" ] && mv "$namebase".* "$dir"/
 }
 
 case "$ext" in
 	# Try to keep these cases in alphabetical order.
 	[0-9]) preconv "$file" | refer -PS -e | groff -mandoc -T pdf > "$base".pdf ;;
-	c) cc "$file" -o "$base" && "$base" ;;
-	cpp) g++ "$file" -o "$base" && "$base" ;;
+	c) gcc "$file" -o "$base" ;;
+	cpp) g++ "$file" -o "$base" ;;
 	cs) mcs "$file" && mono "$base".exe ;;
-	h) sudo make install ;;
+	h) make ;;
 	md)	pandoc -o "$base".pdf "$file";;
 	mom) preconv "$file" | refer -PS -e | groff -mom -kept -T pdf > "$base".pdf ;;
 	ms) preconv "$file" | refer -PS -e | groff -me -ms -kept -T pdf > "$base".pdf ;;
 	rs) cargo build ;;
 	sass) sassc -a "$file" "$base.css" ;;
 	tex) textype ;;
-	*) head -n1 "$file" | grep "^#!/" | sed "s/^#!//" | xargs -r -I % "$file" ;;
+	*) printf "No compiling method for '.%s' files" "$ext" ;;
 esac
