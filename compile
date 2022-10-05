@@ -30,7 +30,7 @@ textype() {
 		[ -f "$mainfile" ] && file=$mainfile
 	fi
 	latexmk -pdf "$file" && latexmk -c "$file"
-	[ -f "$namebase.pdf" ] && mv "$namebase".* "$dir"/
+	[ -f "$namebase.pdf" ] && [ "$(readlink -f "$PWD")" !=  "$dir" ] && mv "$namebase".* "$dir"/
 }
 
 case "$ext" in
