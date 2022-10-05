@@ -16,21 +16,18 @@ else
 	onlythis=
 fi
 
-file=$(readlink -f "$1")
-
+file="$1"
 base="${file%.*}"
 ext="${file##*.}"
-name="${file##*/}"
-namebase="${name%.*}"
-dir="${file%/*}"
 
 textype() {
 	if [ -z "$onlythis" ]; then
 		mainfile=$(head -n 5 "$file" | sed -n 's/\\documentclass\[\(.*\)\]{subfiles}/\1/p')
 		[ -f "$mainfile" ] && file=$mainfile
 	fi
-	latexmk -pdf "$file" && latexmk -c "$file"
-	[ -f "$namebase.pdf" ] && [ "$(readlink -f "$PWD")" !=  "$dir" ] && mv "$namebase".* "$dir"/
+	auxdir=".auxdir"
+	outdir="$(dirname "$file")"
+	latexmk -auxdir="$auxdir" -outdir="$outdir" -pdf "$file"
 }
 
 case "$ext" in
