@@ -31,7 +31,7 @@ textype() {
 	auxdir=".auxdir"
 	outdir="$(dirname "$file")"
 	opts=
-	if head -n 5 "$file" | grep -q 'xelatex'; then
+	if head -n 5 "$file" | grep -q '^% xelatex$'; then
 		opts="$opts --xelatex"
 	fi
 	latexmk -cd- -auxdir="$auxdir" -outdir="$outdir" -pdf $opts "$file"
