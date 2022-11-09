@@ -9,12 +9,15 @@
 # Note that .tex files which you wish to compile with XeLaTeX should have the
 # string "xelatex" somewhere in a comment/command in the first 5 lines.
 
-if [ "$1" = "--onlythis" ]; then
-	onlythis=1
-	shift
-else
-	onlythis=
-fi
+onlythis=
+for arg in $@; do
+	case $arg in
+		--onlythis)
+			onlythis=1
+			shift
+			;;
+	esac
+done
 
 file="$1"
 base="${file%.*}"
@@ -27,7 +30,11 @@ textype() {
 	fi
 	auxdir=".auxdir"
 	outdir="$(dirname "$file")"
-	latexmk -auxdir="$auxdir" -outdir="$outdir" -pdf "$file"
+	opts=
+	if head -n 5 "$file" | grep -q 'xelatex'; then
+		opts="$opts --xelatex"
+	fi
+	latexmk -cd- -auxdir="$auxdir" -outdir="$outdir" -pdf $opts "$file"
 }
 
 case "$ext" in
