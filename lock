@@ -107,7 +107,7 @@ if [ "$screenoff" ]; then
 fi
 
 if [ ! $debug ]; then
-	i3lock \
+	i3lock -n \
 	--nofork \
 	--insidever-color="$white" \
 	--ringver-color="$lightblue" \
