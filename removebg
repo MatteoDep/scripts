@@ -1,0 +1,88 @@
+#!/bin/sh
+
+usage(){
+	printf "%s [-b <background> [-o <output_img>]] <input_img>\n" "$0"
+}
+
+bg=top_left
+
+fuzz=16
+while getopts "b:f:o:h" option
+do
+	case "${option}" in
+		b) bg="$OPTARG";;
+		f) fuzz="$OPTARG";;
+		o) output="$OPTARG";;
+		h) usage; exit 0;;
+		*) echo "unsupported option $option"
+			usage; exit 1;;
+	esac
+done
+shift $((OPTIND-1))
+
+input="$1"
+ext="${input##*.}"
+base="${input%.*}"
+[ -z "$output" ] && output="${base}_nobg.${ext}"
+
+
+noimgbg=
+if [ "$bg" = "top_left" ]; then
+	noimgbg='0,0'
+elif [ "$bg" = "top_right" ]; then
+	noimgbg="$(identify -format '%w,0' "$input")"
+elif [ "$bg" = "bottom_left" ]; then
+	noimgbg="$(identify -format '0,%h' "$input")"
+elif [ "$bg" = "bottom_right" ]; then
+	noimgbg="$(identify -format '%w,%h' "$input")"
+fi
+
+density=300
+if [ "$ext" != "png" ]; then
+	convert -density "$density" "$input" PNG48:"${base}.png"
+fi
+
+simple=
+if [ "$simple" ]; then
+	magick "${base}.png" -bordercolor white -border 1x1 \
+		-alpha set -channel RGBA -fuzz "$fuzz"% \
+		-fill none -floodfill +0+0 white \
+		-shave 1x1 \
+		PNG64:"${base}_nobg.png"
+else
+	magick "${base}.png" \( +clone -fx 'p{'"${noimgbg}"'}' \) \
+		-compose Difference  -composite  \
+		-modulate 100,0 \
+		-alpha off PNG48:diff_mask.png
+
+	magick diff_mask.png -fill blue -fuzz "${fuzz}"% \
+		-bordercolor black -border 1x1 -floodfill +0+0 black \
+		-shave 1x1 PNG48:"diff_mask_${fuzz}.png"; \
+	magick diff_mask.png -fill blue -fuzz 1% \
+		-bordercolor black -border 1x1 -floodfill +0+0 black \
+		-shave 1x1 PNG48:diff_mask_1.png; \
+
+	magick "diff_mask_${fuzz}.png" -channel blue -separate +channel -negate \
+		"${base}.png" +swap -alpha Off -compose CopyOpacity -composite \
+		PNG48:"${base}_inside.png"
+
+	magick diff_mask_1.png -negate "diff_mask_${fuzz}.png" \
+		-channel blue -separate +channel -compose multiply -composite \
+		PNG48:mask_aliasing_area.png
+
+	magick diff_mask.png -channel red -separate +channel \
+		mask_aliasing_area.png -alpha Off -compose CopyOpacity -composite \
+		-background none -compose Over -flatten -normalize \
+		PNG48:mask_antialiased_pixels.png
+
+	magick mask_antialiased_pixels.png mask_aliasing_area.png \
+		-compose multiply -composite -negate \
+		-background '#444' -channel A  -combine PNG48:"${base}_edging.png"
+
+	magick "${base}_inside.png" "${base}_edging.png" \
+		-background none  -flatten PNG64:"${base}_nobg.png"
+fi
+
+if [ "$ext" != "png" ] && [ "$ext" != "pdf" ]; then
+	convert -density "$density" "${base}.png" "$output"
+fi
