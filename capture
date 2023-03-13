@@ -1,5 +1,5 @@
 #!/bin/sh
 
-screenshots_dir=~/media/screenshots
+screenshots_dir=~/Pictures/screenshots
 mkdir -p "$screenshots_dir"
 maim $@ "$screenshots_dir/$(date +'%Y-%m-%d-%T')-screenshot.png"
