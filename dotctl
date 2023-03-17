@@ -6,8 +6,8 @@ usage(){
 
 add(){
 	mkdir -p "$(dirname "$dst")"
-	$sudocmd mv "$src" "$dst"
-	$sudocmd ln -s "$dst" "$src"
+	$sudocmd cp "$src" "$dst"
+	$sudocmd ln -sf "$dst" "$src"
 }
 
 remove(){
