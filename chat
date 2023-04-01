@@ -1,0 +1,5 @@
+#!/bin/sh
+
+ALPACA_PROJECT_FOLDER="$HOME/projects/alpaca.cpp"
+
+${ALPACA_PROJECT_FOLDER}/chat -m "${ALPACA_PROJECT_FOLDER}/ggml-alpaca-7b-q4.bin"
