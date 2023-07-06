@@ -32,7 +32,7 @@ case "$1" in
 				dst="$dotfiles_dir/home/${src#"$HOME/"}"
 				sudocmd=
 			else
-				dst="$dotfiles_dir/root$src"
+				dst="$dotfiles_dir/root/$src"
 				sudocmd=sudo
 			fi
 			echo "$i"
