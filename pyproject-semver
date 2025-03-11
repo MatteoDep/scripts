@@ -1,0 +1,38 @@
+#!/bin/sh
+
+usage(){
+    printf 'Usage: %s [<new-version> | major | minor | patch | prerelease]\n' "$0"
+}
+
+is_poetry=
+ver=$(uvx --from toml-cli toml get --toml-path pyproject.toml project.version 2>/dev/null)
+if [ -z "$ver" ]; then
+    ver=$(uvx --from toml-cli toml get --toml-path pyproject.toml tool.poetry.version 2>/dev/null)
+    is_poetry=1
+fi
+
+if [ -z "$1" ]; then
+    printf '%s\n' "$ver"
+    exit 0
+fi
+
+case "$1" in
+    -h)
+        usage
+        exit 0
+        ;;
+    major|minor|patch|prerelease)
+        newver=$(uvx --from semver pysemver nextver "$ver" "$1")
+        ;;
+    *)
+        uvx --from semver pysemver check "$1" || exit 1
+        newver="$1"
+        ;;
+esac
+
+printf 'Bumping version from %s to %s\n' "$ver" "$newver"
+if [ "$is_poetry" ]; then
+    uvx --from toml-cli toml set --toml-path pyproject.toml tool.poetry.version "$newver"
+else
+    uvx --from toml-cli toml set --toml-path pyproject.toml project.version "$newver"
+fi
