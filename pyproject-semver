@@ -1,7 +1,8 @@
 #!/bin/sh
 
 usage(){
-    printf 'Usage: %s [<new-version> | major | minor | patch | prerelease]\n' "$0"
+    name=$(basename "$0")
+    printf 'Usage: %s [<new-version> | major | minor | patch | prerelease]\n' "$name"
 }
 
 is_poetry=
