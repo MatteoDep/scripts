@@ -1,6 +1,7 @@
 #!/bin/sh
 
 bin_dir="$HOME/.local/bin"
+mkdir -p "$bin_dir"
 if [ "$@" ]; then
     args=$@
 else
