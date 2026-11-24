@@ -6,7 +6,7 @@
 #   site       orgname, username, API key  -> Confluence, Jira
 #   bitbucket  username, API key           -> Bitbucket Cloud
 #
-# Use as a library (sourced by the confluence / bitbucket wrappers):
+# Use as a library (source it from other scripts):
 #   . "$(dirname "$(readlink -f "$0")")/atlassian"
 #   atlassian_load_config              # site creds (default)
 #   atlassian_load_config bitbucket    # bitbucket creds
@@ -17,6 +17,18 @@
 #   ./atlassian configure [site|bitbucket]   Re-enter and re-cache one set (default site).
 #   ./atlassian api confluence /space -G --data-urlencode limit=250
 #   ./atlassian api bitbucket  /user
+#   ./atlassian confluence publish  [options] <markdown_file>
+#   ./atlassian confluence download [options] [url|spacekey] [output_dir]
+#
+# confluence publish (needs md-to-conf, fzf):
+#   -s, --space KEY        Space key (skip interactive picker).
+#   -a, --ancestor TITLE   Ancestor page title (skip interactive picker).
+#       --no-ancestor      Publish at space root.
+#
+# confluence download (needs cme; output_dir defaults to ./confluence_export):
+#   <url>                  A single page (default).
+#       --descendants      The page and its descendants.
+#       --space            A whole space (URL, key, or pick interactively).
 #
 # Supported products (for atlassian_api / atlassian_base_url):
 #   confluence  https://<org>.atlassian.net/wiki/rest/api
@@ -62,7 +74,7 @@ atlassian_prompt_config() {
     case "$which" in
         site)
             echo "Configuring Atlassian site credentials (Confluence, Jira), cached at $CONFIG_FILE." >&2
-            read -rp "  Organization subdomain (e.g. mycompany): " org
+            read -rp "  Organization subdomain (e.g. mycompany for mycompany.atlassian.net): " org
             read -rp "  Username (email): " user
             read -rsp "  API key (https://id.atlassian.com/manage/api-tokens): " key; echo >&2
             [ -n "$org" ] && [ -n "$user" ] && [ -n "$key" ] || atlassian_die "all credential fields are required"
@@ -152,6 +164,137 @@ atlassian_api() {
     curl -fsS -u "$auth" "${base}${path}" "$@"
 }
 
+# Prints the header comment of this file as help.
+atlassian_help() { sed -n '2,/^[^#]/{/^#/p}' "${BASH_SOURCE[0]}" | sed 's/^# \?//'; }
+
+# ---- confluence: interactive pickers ----
+# Each api call is captured before piping, so failures surface without pipefail.
+atlassian_confluence_pick_space() {  # echoes selected space key
+    echo "Fetching spaces..." >&2
+    local json spaces
+    json="$(atlassian_api confluence /space -G --data-urlencode "type=global" --data-urlencode "limit=250")" \
+        || atlassian_die "failed to fetch spaces (check credentials / org subdomain)"
+    spaces="$(printf '%s' "$json" | jq -r '.results[] | "\(.key)\t\(.name)"' | sort -t$'\t' -k2)"
+    [ -n "$spaces" ] || atlassian_die "no spaces returned"
+    printf '%s\n' "$spaces" | fzf --with-nth=2.. --delimiter='\t' \
+        --prompt="Space> " --height=40% --reverse | cut -f1
+}
+
+atlassian_confluence_pick_ancestor() {  # $1=space key; echoes title or empty for root
+    echo "Fetching pages in $1..." >&2
+    local json pages choice
+    json="$(atlassian_api confluence /content -G \
+        --data-urlencode "spaceKey=$1" \
+        --data-urlencode "type=page" \
+        --data-urlencode "limit=500")" \
+        || atlassian_die "failed to fetch pages for space $1"
+    pages="$(printf '%s' "$json" | jq -r '.results[].title' | sort)"
+    choice="$(printf '[none] (space root)\n%s\n' "$pages" \
+        | fzf --prompt="Ancestor> " --height=40% --reverse)" || true
+    [ -n "$choice" ] || atlassian_die "no ancestor selected"
+    [ "$choice" = "[none] (space root)" ] || printf '%s' "$choice"
+}
+
+# ---- confluence: publish (markdown -> page, via md-to-conf) ----
+atlassian_confluence_publish() {
+    local space="" ancestor="" ancestor_set=0 md_file=""
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            -s|--space)    [ $# -ge 2 ] || atlassian_die "$1 needs a value"; space="$2"; shift 2 ;;
+            -a|--ancestor) [ $# -ge 2 ] || atlassian_die "$1 needs a value"; ancestor="$2"; ancestor_set=1; shift 2 ;;
+            --no-ancestor) ancestor=""; ancestor_set=1; shift ;;
+            -h|--help)     atlassian_help; return 0 ;;
+            -*)            atlassian_die "unknown publish option: $1" ;;
+            *)             [ -z "$md_file" ] || atlassian_die "only one markdown file allowed"; md_file="$1"; shift ;;
+        esac
+    done
+    [ -n "$md_file" ] || atlassian_die "no markdown file given"
+    [ -f "$md_file" ] || atlassian_die "file not found: $md_file"
+    atlassian_need md-to-conf curl jq fzf
+    atlassian_load_config site
+
+    [ -n "$space" ] || space="$(atlassian_confluence_pick_space || true)"
+    [ -n "$space" ] || atlassian_die "no space selected"
+    echo "Space: $space" >&2
+
+    if [ "$ancestor_set" -eq 0 ]; then
+        ancestor="$(atlassian_confluence_pick_ancestor "$space")" || atlassian_die "no ancestor selected"
+    fi
+    if [ -n "$ancestor" ]; then echo "Ancestor: $ancestor" >&2; else echo "Ancestor: (space root)" >&2; fi
+
+    echo "Publishing '$md_file' to space '$space'..." >&2
+    local args=( "$md_file" "$space" )
+    [ -n "$ancestor" ] && args+=( --ancestor "$ancestor" )
+    # Credentials go via env, not argv (visible in ps); md-to-conf also lets env override argv.
+    CONFLUENCE_USERNAME="$ATLASSIAN_USERNAME" \
+    CONFLUENCE_API_KEY="$ATLASSIAN_API_KEY" \
+    CONFLUENCE_ORGNAME="$ATLASSIAN_ORGNAME" \
+        md-to-conf "${args[@]}"
+    echo "Done." >&2
+}
+
+# ---- confluence: download (page / page tree / space, via cme) ----
+atlassian_confluence_download() {
+    local mode="page" arg="" out_dir=""
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --descendants) mode="page-with-descendants"; shift ;;
+            --space)       mode="space"; shift ;;
+            -h|--help)     atlassian_help; return 0 ;;
+            -*)            atlassian_die "unknown download option: $1" ;;
+            *)
+                if [ -z "$arg" ]; then arg="$1"
+                elif [ -z "$out_dir" ]; then out_dir="$1"
+                else atlassian_die "too many arguments: $1"
+                fi
+                shift ;;
+        esac
+    done
+    out_dir="${out_dir:-./confluence_export}"
+    atlassian_need cme curl jq python3
+    atlassian_load_config site
+
+    local url="$arg" key
+    if [ "$mode" = "space" ]; then
+        # accept a full space URL, a bare space key, or nothing (pick one)
+        case "$arg" in
+            http*) url="$arg" ;;
+            "")    key="$(atlassian_confluence_pick_space || true)"
+                   [ -n "$key" ] || atlassian_die "no space selected"
+                   url="$BASE_URL/wiki/spaces/$key" ;;
+            *)     url="$BASE_URL/wiki/spaces/$arg" ;;
+        esac
+    fi
+    [ -n "$url" ] || atlassian_die "download needs a page URL (or use --space)"
+
+    mkdir -p "$out_dir"
+
+    # cme stores auth keyed by instance URL in a JSON config file; patch it directly.
+    # The file holds the token in plaintext, so keep it private.
+    local cme_cfg
+    cme_cfg="$(cme config path)" || atlassian_die "cme config path failed"
+    mkdir -p "$(dirname "$cme_cfg")"
+    ( umask 077; [ -s "$cme_cfg" ] || echo '{}' > "$cme_cfg" )
+    chmod 600 "$cme_cfg"
+    # credentials via env, not argv (visible in ps)
+    CME_CFG="$cme_cfg" CME_URL="$BASE_URL" CME_USER="$ATLASSIAN_USERNAME" CME_TOKEN="$ATLASSIAN_API_KEY" \
+        python3 - <<'PY'
+import json, os
+path, base_url, user, token = (os.environ[k] for k in ("CME_CFG", "CME_URL", "CME_USER", "CME_TOKEN"))
+with open(path) as f:
+    cfg = json.load(f)
+cfg.setdefault("auth", {}).setdefault("confluence", {})[base_url] = {
+    "username": user, "api_token": token, "pat": "", "cloud_id": ""
+}
+with open(path, "w") as f:
+    json.dump(cfg, f, indent=2)
+PY
+
+    echo "Downloading ($mode) '$url' to '$out_dir'..." >&2
+    CME_EXPORT__OUTPUT_PATH="$out_dir" cme "$mode" "$url"
+    echo "Done." >&2
+}
+
 # ---- run as a command ----
 if [ "${BASH_SOURCE[0]}" = "$0" ]; then
     set -euo pipefail
@@ -167,8 +310,17 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
             atlassian_need curl
             atlassian_api "$@"
             ;;
+        confluence)
+            shift
+            case "${1:-}" in
+                publish)   shift; atlassian_confluence_publish "$@" ;;
+                download)  shift; atlassian_confluence_download "$@" ;;
+                -h|--help) atlassian_help ;;
+                *)         atlassian_die "usage: $0 confluence <publish|download> [options] (see --help)" ;;
+            esac
+            ;;
         -h|--help|"")
-            sed -n '2,25p' "$0" | sed 's/^# \?//'
+            atlassian_help
             [ -n "${1:-}" ]  # exit 0 for -h/--help, 1 for no args
             ;;
         *)
