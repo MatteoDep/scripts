@@ -5,9 +5,26 @@ usage(){
 }
 
 add(){
-	mkdir -p "$(dirname "$dst")"
-	$sudocmd mv "$src" "$dst"
-	$sudocmd ln -s "$dst" "$src"
+	if [ ! -e "$src" ] && [ ! -L "$src" ]; then
+		echo "Skipping $i: no such file" >&2
+		status=1
+		return
+	fi
+	# Files without world-read (e.g. chmod 600/640) usually hold secrets: keep them out.
+	private=$($sudocmd find "$src" -type f ! -perm -o=r) || {
+		echo "Skipping $i: could not check permissions" >&2
+		status=1
+		return
+	}
+	if [ -n "$private" ]; then
+		echo "Skipping $i: not world-readable, may hold secrets:" >&2
+		printf '%s\n' "$private" | sed 's/^/  /' >&2
+		status=1
+		return
+	fi
+	mkdir -p "$(dirname "$dst")" &&
+		$sudocmd mv "$src" "$dst" &&
+		$sudocmd ln -s "$dst" "$src" || status=1
 }
 
 remove(){
@@ -21,6 +38,7 @@ remove(){
 	}
 }
 
+status=0
 case "$1" in
     add|remove)
 		command=$1
@@ -38,6 +56,7 @@ case "$1" in
 			echo "$i"
 			$command "$i"
 		done
+		exit $status
         ;;
 	-h|--help|help)
 		usage
