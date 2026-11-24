@@ -1,0 +1,267 @@
+#!/usr/bin/env bash
+# Start, reuse and stop kubectl port-forwards for the dadbod connections that have a `tunnel:`
+# in connections.yaml. The tunnel comes from the "# dadbod: tunnel kube ..." marker that the
+# dadbod sync writes in the service file, so this never reads credentials.
+#
+# Tunnels run as systemd user units named dbtunnel-<local port>. One is reused only when it is
+# ours (same settings, the unit's kubectl owns the port) and the database answers; a port held
+# by anything else is never used. A timer stops tunnels with no connections for 30 minutes
+# (sampled every 5 minutes: a client that does not go through `dbtunnel up`, like DBeaver,
+# keeps it alive only while connected).
+# When the kube context needs an expired AWS SSO session, the login is started in the
+# background (the page opens in the browser) and this waits a little for it.
+
+set -euo pipefail
+
+usage() {
+    name=$(basename "$0")
+    cat <<EOF
+Usage: $name up <service>      start the service's tunnel, or check and reuse the running one
+       $name fg <service>      run the port-forward in the foreground (Ctrl-C to stop)
+       $name down [service]    stop the service's tunnel, or all tunnels
+       $name status            tunneled services and their state
+       $name reap              stop tunnels idle for \$DBTUNNEL_IDLE_MINUTES (default 30)
+
+Exit codes: 2 usage, 5 tunnel or login failure.
+EOF
+}
+
+service_file=${PGSERVICEFILE:-$HOME/.pg_service.conf}
+run_dir=${XDG_RUNTIME_DIR:-/tmp/dbtunnel-$UID}/dbtunnel
+idle_minutes=${DBTUNNEL_IDLE_MINUTES:-30}
+sso_wait=${DBTUNNEL_SSO_WAIT:-40}
+self=$(readlink -f "$0")
+
+die() { printf 'dbtunnel: %s\n' "$*" >&2; exit 5; }
+say() { printf 'dbtunnel: %s\n' "$*" >&2; }
+
+# "name context namespace resource local_port remote_port" per tunneled service
+tunnels() {
+    awk '/^# BEGIN dadbod/ { inside = 1; next } /^# END dadbod$/ { inside = 0 }
+         !inside { next }
+         /^# dadbod: tunnel kube / { t = $5 " " $6 " " $7 " " $8 " " $9; next }
+         /^\[.*\]$/ { if (t != "") print substr($0, 2, length($0) - 2), t; t = "" }' \
+        "$service_file" 2>/dev/null
+}
+
+# Sets ctx ns res lport rport unit desc for service $1 (same rules as the sync, checked again)
+load() {
+    local line
+    [[ $1 =~ ^[A-Za-z0-9_.-]+$ ]] || die "invalid service name"
+    line=$(tunnels | awk -v s="$1" '$1 == s')
+    [ -n "$line" ] || die "'$1' has no tunnel (or is not a service; 'dbtunnel status' lists them)"
+    read -r _ ctx ns res lport rport <<< "$line"
+    [[ $ctx =~ ^[A-Za-z0-9][A-Za-z0-9_.:@/-]*$ ]] || die "'$1': invalid context"
+    [[ $ns =~ ^[a-z0-9][a-z0-9.-]*$ ]] || die "'$1': invalid namespace"
+    [[ $res =~ ^(svc|service|pod|deploy|deployment|sts|statefulset)/[a-z0-9][a-z0-9.-]*$ ]] ||
+        die "'$1': invalid resource"
+    [[ $lport =~ ^[0-9]{1,5}$ && $rport =~ ^[0-9]{1,5}$ ]] && ((lport <= 65535 && rport <= 65535)) ||
+        die "'$1': invalid port"
+    unit=dbtunnel-$lport.service
+    desc="dbtunnel $ctx $ns $res $lport:$rport"
+}
+
+prop() { systemctl --user show -p "$2" --value "$1" 2>/dev/null; }
+listening() { [ -n "$(ss -ltnH "sport = :$1")" ]; }
+# every listener on the port belongs to the unit's kubectl
+owned() {
+    local main total
+    main=$(prop "$unit" MainPID)
+    total=$(ss -ltnH "sport = :$lport" | wc -l)
+    ((total > 0)) && [ "$(ss -ltnpH "sport = :$lport" | grep -c "pid=$main,")" = "$total" ]
+}
+
+# something answers through the tunnel (no password needed). pg_isready exit 1 (server up but
+# rejecting, e.g. starting) is not a tunnel problem: psql reports it.
+healthy() {
+    local code=0
+    (
+        unset PGHOST PGHOSTADDR PGPORT PGUSER PGPASSWORD PGPASSFILE PGOPTIONS PGSERVICE PGDATABASE
+        pg_isready -q -t 5 -d "service=$1"
+    ) || code=$?
+    ((code <= 1))
+}
+
+kubectl_cmd() { echo kubectl --context "$ctx" port-forward -n "$ns" --address localhost "$res" "$lport:$rport"; }
+
+# AWS profile of the context's EKS token command, for the SSO login
+aws_profile() {
+    local user
+    user=$(kubectl config view -o jsonpath="{.contexts[?(@.name==\"$ctx\")].context.user}" 2>/dev/null) || return 0
+    [ -n "$user" ] || return 0
+    kubectl config view -o jsonpath="{.users[?(@.name==\"$user\")].user.exec.env[?(@.name==\"AWS_PROFILE\")].value}" 2>/dev/null
+}
+
+# Start `aws sso login` in the background (one per profile) and wait up to $sso_wait seconds.
+# Returns 0 when the session works again, 1 when it was not the problem.
+sso_login() {
+    local profile=$1 lock log i
+    [[ $profile =~ ^[A-Za-z0-9_.-]+$ ]] || return 1
+    aws sts get-caller-identity --profile "$profile" >/dev/null 2>&1 && return 1
+    lock=$run_dir/sso-$profile.lock log=$run_dir/sso-$profile.log
+    # the background process holds the sso lock for the whole login, so parallel calls share it;
+    # it must not inherit the port lock (fd 9), or the port stays locked until the login ends
+    setsid -f bash -c 'exec 8>"$1"; flock -n 8 || exit 0; exec aws sso login --profile "$2" --use-device-code >"$3" 2>&1 </dev/null' \
+        _ "$lock" "$profile" "$log" 9>&-
+    say "AWS SSO session of profile '$profile' expired: opening the login page in the browser, waiting up to ${sso_wait}s for approval"
+    sleep 2
+    for ((i = 2; i < sso_wait; i++)); do
+        flock -n "$lock" true && break
+        sleep 1
+    done
+    if aws sts get-caller-identity --profile "$profile" >/dev/null 2>&1; then
+        say "AWS SSO login done"
+        return 0
+    fi
+    local url code
+    url=$(grep -oE 'https://[^[:space:]]+' "$log" 2>/dev/null | tail -1 || true)
+    # device code the page asks to confirm (printed by aws on its own line, like ABCD-EFGH)
+    code=$(grep -oE '^[A-Z0-9]{4}-[A-Z0-9]{4}$' "$log" 2>/dev/null | tail -1 || true)
+    die "AWS SSO login for profile '$profile' not approved yet:${code:+ check that the page shows code $code and} approve it in the browser${url:+ ($url)}, then rerun"
+}
+
+# Start the unit and wait until it listens. Prints the log tail and returns 1 on failure.
+start() {
+    local log=$run_dir/$lport.log i v env=(--setenv=PATH="$PATH")
+    # settings kubectl and the EKS token command may need (the user manager has its own env)
+    for v in KUBECONFIG AWS_CONFIG_FILE AWS_SHARED_CREDENTIALS_FILE AWS_PROFILE AWS_REGION AWS_DEFAULT_REGION; do
+        [ -z "${!v:-}" ] || env+=(--setenv="$v=${!v}")
+    done
+    systemctl --user reset-failed "$unit" >/dev/null 2>&1 || true
+    systemd-run --user --quiet --collect --unit="$unit" --description="$desc" \
+        -p StandardOutput="truncate:$log" -p StandardError=inherit "${env[@]}" \
+        $(kubectl_cmd) || return 1
+    for ((i = 0; i < 100; i++)); do
+        [ "$(prop "$unit" ActiveState)" = active ] || break
+        listening "$lport" && owned && return 0
+        sleep 0.2
+    done
+    systemctl --user stop "$unit" >/dev/null 2>&1 || true
+    return 1
+}
+
+ensure_reaper() {
+    [ "$(prop dbtunnel-reap.timer ActiveState)" = active ] && return 0
+    systemctl --user reset-failed dbtunnel-reap.service >/dev/null 2>&1 || true
+    systemd-run --user --quiet --collect --unit=dbtunnel-reap --description="dbtunnel idle reaper" \
+        --on-active=5min --on-unit-active=5min \
+        --setenv=PATH="$PATH" "$self" reap >/dev/null 2>&1 || say "could not start the idle reaper timer"
+}
+
+up() {
+    load "$1"
+    mkdir -p -m 700 "$run_dir"
+    exec 9>"$run_dir/port-$lport.lock"
+    flock -w 60 9 || die "timed out waiting for another dbtunnel on port $lport"
+    rm -f "$run_dir/idle-$lport"
+
+    if [ "$(prop "$unit" ActiveState)" = active ]; then
+        if [ "$(prop "$unit" Description)" = "$desc" ] && owned; then
+            healthy "$1" && { ensure_reaper; return 0; }
+            say "tunnel on port $lport does not answer, restarting it"
+        else
+            say "tunnel on port $lport has other settings, restarting it"
+        fi
+        systemctl --user stop "$unit"
+    fi
+    if listening "$lport"; then
+        die "port $lport is used by another process ($(ss -ltnpH "sport = :$lport" | grep -oE '"[^"]+",pid=[0-9]+' | head -1)); stop it, or change the port"
+    fi
+
+    local tries profile log=$run_dir/$lport.log
+    for tries in 1 2; do
+        if start; then
+            ensure_reaper
+            for _ in 1 2 3; do healthy "$1" && return 0; sleep 1; done
+            die "tunnel '$1' is up but the database does not answer; log: $log"
+        fi
+        # a second try only after a successful SSO login
+        if ((tries == 1)) && grep -qiE '(^|[^a-z])sso([^a-z]|$)|token has expired|refresh failed|ExpiredToken' "$log" 2>/dev/null &&
+            profile=$(aws_profile) && [ -n "$profile" ] && sso_login "$profile"; then
+            continue
+        fi
+        break
+    done
+    say "could not start tunnel '$1': $(kubectl_cmd)"
+    tail -n 5 "$log" >&2 2>/dev/null || true
+    exit 5
+}
+
+fg_forward() {
+    load "$1"
+    listening "$lport" && die "port $lport is already in use ('dbtunnel status')"
+    printf '%s: localhost:%s -> %s %s/%s:%s\n' "$1" "$lport" "$ctx" "$ns" "$res" "$rport"
+    exec $(kubectl_cmd)
+}
+
+active_units() {
+    systemctl --user list-units --plain --no-legend --state=active 'dbtunnel-*.service' 2>/dev/null |
+        awk '$1 ~ /^dbtunnel-[0-9]+\.service$/ { print $1 }'
+}
+
+down() {
+    if [ $# -eq 1 ]; then
+        load "$1"
+        systemctl --user stop "$unit" 2>/dev/null || true
+        rm -f "$run_dir/idle-$lport"
+        say "stopped tunnel on port $lport"
+    else
+        local u
+        for u in $(active_units); do systemctl --user stop "$u"; done
+        systemctl --user stop dbtunnel-reap.timer 2>/dev/null || true
+        rm -f "$run_dir"/idle-*
+        say "stopped all tunnels"
+    fi
+}
+
+reap() {
+    local u port any=
+    mkdir -p -m 700 "$run_dir"
+    for u in $(active_units); do
+        port=${u#dbtunnel-} port=${port%.service}
+        # a `dbtunnel up` holding the port lock is about to use the tunnel: leave it alone
+        exec 7>"$run_dir/port-$port.lock"
+        if ! flock -n 7 || [ -n "$(ss -tnH state established "sport = :$port")" ]; then
+            rm -f "$run_dir/idle-$port"
+            any=1
+        elif [ ! -e "$run_dir/idle-$port" ]; then
+            touch "$run_dir/idle-$port"
+            any=1
+        elif [ -n "$(find "$run_dir/idle-$port" -mmin +"$((idle_minutes - 1))")" ]; then
+            systemctl --user stop "$u" || true
+            rm -f "$run_dir/idle-$port"
+        else
+            any=1
+        fi
+        exec 7>&-
+    done
+    [ -n "$any" ] || systemctl --user stop dbtunnel-reap.timer 2>/dev/null || true
+}
+
+status() {
+    local name c n r l p state
+    printf '%-24s %-6s %s\n' SERVICE PORT 'STATE  TARGET'
+    while read -r name c n r l p; do
+        unit=dbtunnel-$l.service lport=$l
+        if [ "$(prop "$unit" ActiveState)" = active ]; then
+            if [ "$(prop "$unit" Description)" = "dbtunnel $c $n $r $l:$p" ]; then state=up; else state=other; fi
+        elif listening "$l"; then
+            state=foreign
+        else
+            state=down
+        fi
+        printf '%-24s %-6s %-6s %s %s/%s:%s\n' "$name" "$l" "$state" "$c" "$n" "$r" "$p"
+    done < <(tunnels)
+}
+
+[ $# -ge 1 ] || { usage >&2; exit 2; }
+cmd=$1; shift
+case $cmd in
+    up) [ $# -eq 1 ] || { usage >&2; exit 2; }; up "$1" ;;
+    fg) [ $# -eq 1 ] || { usage >&2; exit 2; }; fg_forward "$1" ;;
+    down) [ $# -le 1 ] || { usage >&2; exit 2; }; down "$@" ;;
+    status) status ;;
+    reap) reap ;;
+    -h|--help|help) usage ;;
+    *) usage >&2; exit 2 ;;
+esac
