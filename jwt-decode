@@ -1,0 +1,21 @@
+#!/bin/sh
+# Decode a JWT header and payload. Does NOT verify the signature.
+
+usage(){
+    name=$(basename "$0")
+    printf 'Usage: %s <token>\n       echo <token> | %s\n' "$name" "$name"
+}
+
+case "$1" in
+    -h|--help)
+        usage
+        exit 0
+        ;;
+esac
+
+token=${1:-$(cat)}
+token=${token#Bearer }
+
+printf '%s' "$token" | jq -R 'split(".") | .[0:2]
+    | map(gsub("-";"+") | gsub("_";"/") | @base64d | fromjson)
+    | {header: .[0], payload: .[1]}'

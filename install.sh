@@ -2,13 +2,11 @@
 
 bin_dir="$HOME/.local/bin"
 mkdir -p "$bin_dir"
-if [ "$@" ]; then
-    args=$@
-else
-    args=$(ls -A "$PWD")
+if [ $# -eq 0 ]; then
+    set -- $(ls -A "$PWD")
 fi
 
-for f in $args; do
+for f in "$@"; do
     if [ -f "$f" ] &&
         [ -x "$f" ] &&
         [ ! -e "$bin_dir/$f" ] &&

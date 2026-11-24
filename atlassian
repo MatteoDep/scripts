@@ -1,0 +1,178 @@
+#!/bin/bash
+# atlassian - shared auth + API helpers for Atlassian Cloud.
+#
+# Two credential sets are asked on first use and cached in $ATLASSIAN_CONFIG
+# (chmod 600), since Bitbucket Cloud API tokens are separate from the site ones:
+#   site       orgname, username, API key  -> Confluence, Jira
+#   bitbucket  username, API key           -> Bitbucket Cloud
+#
+# Use as a library (sourced by the confluence / bitbucket wrappers):
+#   . "$(dirname "$(readlink -f "$0")")/atlassian"
+#   atlassian_load_config              # site creds (default)
+#   atlassian_load_config bitbucket    # bitbucket creds
+#   atlassian_api confluence /space -G --data-urlencode limit=250
+#   atlassian_api bitbucket  /repositories/myworkspace
+#
+# Use as a command:
+#   ./atlassian configure [site|bitbucket]   Re-enter and re-cache one set (default site).
+#   ./atlassian api confluence /space -G --data-urlencode limit=250
+#   ./atlassian api bitbucket  /user
+#
+# Supported products (for atlassian_api / atlassian_base_url):
+#   confluence  https://<org>.atlassian.net/wiki/rest/api
+#   jira        https://<org>.atlassian.net/rest/api/3
+#   bitbucket   https://api.bitbucket.org/2.0
+
+CONFIG_FILE="${ATLASSIAN_CONFIG:-$HOME/.config/atlassian.env}"
+ATLASSIAN_CONFIG_VARS=(ATLASSIAN_ORGNAME ATLASSIAN_USERNAME ATLASSIAN_API_KEY BITBUCKET_USERNAME BITBUCKET_API_KEY)
+
+atlassian_die() { echo "Error: $*" >&2; exit 1; }
+
+atlassian_need() {
+    for c in "$@"; do
+        command -v "$c" >/dev/null 2>&1 || atlassian_die "required tool not found: $c"
+    done
+}
+
+# ---- credentials ----
+atlassian_read_config() {
+    # shellcheck source=/dev/null
+    [ -f "$CONFIG_FILE" ] && . "$CONFIG_FILE"
+    return 0
+}
+
+# Rewrites the whole file from the current values, so saving one set keeps the other.
+atlassian_save_config() {
+    mkdir -p "$(dirname "$CONFIG_FILE")"
+    local v
+    (
+        umask 077
+        for v in "${ATLASSIAN_CONFIG_VARS[@]}"; do
+            if [ -n "${!v:-}" ]; then printf '%s=%q\n' "$v" "${!v}"; fi
+        done > "$CONFIG_FILE"
+    )
+    chmod 600 "$CONFIG_FILE"
+}
+
+# atlassian_prompt_config [site|bitbucket]  (default site)
+atlassian_prompt_config() {
+    atlassian_need curl
+    local which="${1:-site}" org user key
+    atlassian_read_config
+    case "$which" in
+        site)
+            echo "Configuring Atlassian site credentials (Confluence, Jira), cached at $CONFIG_FILE." >&2
+            read -rp "  Organization subdomain (e.g. mycompany): " org
+            read -rp "  Username (email): " user
+            read -rsp "  API key (https://id.atlassian.com/manage/api-tokens): " key; echo >&2
+            [ -n "$org" ] && [ -n "$user" ] && [ -n "$key" ] || atlassian_die "all credential fields are required"
+            ATLASSIAN_ORGNAME="$org" ATLASSIAN_USERNAME="$user" ATLASSIAN_API_KEY="$key"
+            ;;
+        bitbucket)
+            echo "Configuring Bitbucket credentials, cached at $CONFIG_FILE." >&2
+            read -rp "  Username (email)${ATLASSIAN_USERNAME:+ [$ATLASSIAN_USERNAME]}: " user
+            user="${user:-${ATLASSIAN_USERNAME:-}}"
+            read -rsp "  Bitbucket API token (https://id.atlassian.com/manage-profile/security/api-tokens): " key; echo >&2
+            [ -n "$user" ] && [ -n "$key" ] || atlassian_die "all credential fields are required"
+            BITBUCKET_USERNAME="$user" BITBUCKET_API_KEY="$key"
+            ;;
+        *)
+            atlassian_die "unknown credential set: $which (site|bitbucket)"
+            ;;
+    esac
+    atlassian_save_config
+    echo "Saved." >&2
+}
+
+# atlassian_load_config [site|bitbucket]  (default site)
+# Loads the cached file, prompting for the requested set if it is missing or if RECONFIGURE=1.
+# Sets whatever is available of:
+#   ATLASSIAN_ORGNAME / ATLASSIAN_USERNAME / ATLASSIAN_API_KEY
+#   BASE_URL        (https://<org>.atlassian.net)
+#   AUTH            (site user:key for curl -u)
+#   BITBUCKET_AUTH  (bitbucket user:key for curl -u)
+atlassian_load_config() {
+    local which="${1:-site}"
+    atlassian_read_config
+    case "$which" in
+        site)
+            if [ "${RECONFIGURE:-0}" -eq 1 ] || [ -z "${ATLASSIAN_ORGNAME:-}" ] \
+                || [ -z "${ATLASSIAN_USERNAME:-}" ] || [ -z "${ATLASSIAN_API_KEY:-}" ]; then
+                atlassian_prompt_config site
+            fi
+            ;;
+        bitbucket)
+            if [ "${RECONFIGURE:-0}" -eq 1 ] || [ -z "${BITBUCKET_USERNAME:-}" ] || [ -z "${BITBUCKET_API_KEY:-}" ]; then
+                atlassian_prompt_config bitbucket
+            fi
+            ;;
+        *)
+            atlassian_die "unknown credential set: $which (site|bitbucket)"
+            ;;
+    esac
+    BASE_URL="${ATLASSIAN_ORGNAME:+https://${ATLASSIAN_ORGNAME}.atlassian.net}"
+    AUTH="${ATLASSIAN_USERNAME:+${ATLASSIAN_USERNAME}:${ATLASSIAN_API_KEY:-}}"
+    BITBUCKET_AUTH="${BITBUCKET_USERNAME:+${BITBUCKET_USERNAME}:${BITBUCKET_API_KEY:-}}"
+}
+
+# ---- API ----
+atlassian_credential_set() {  # $1=product; echoes the credential set it uses
+    case "$1" in
+        bitbucket) echo bitbucket ;;
+        *)         echo site ;;
+    esac
+}
+
+atlassian_base_url() {  # $1=product; echoes REST base URL
+    case "$1" in
+        confluence) echo "${BASE_URL:-}/wiki/rest/api" ;;
+        jira)       echo "${BASE_URL:-}/rest/api/3" ;;
+        bitbucket)  echo "https://api.bitbucket.org/2.0" ;;
+        *)          return 1 ;;
+    esac
+}
+
+# atlassian_api PRODUCT PATH [curl args...]
+#   PATH is appended to the product's REST base (start it with '/').
+#   Remaining args pass straight to curl (e.g. -G --data-urlencode k=v, -X POST -d ...).
+#   Loads (and prompts for) the product's credential set if not loaded yet.
+atlassian_api() {
+    [ $# -ge 2 ] || atlassian_die "usage: atlassian_api PRODUCT PATH [curl args...]"
+    local product="$1" path="$2"; shift 2
+    local base auth
+    atlassian_base_url "$product" >/dev/null || atlassian_die "unknown product: $product"
+    if [ "$(atlassian_credential_set "$product")" = bitbucket ]; then
+        [ -n "${BITBUCKET_AUTH:-}" ] || RECONFIGURE=0 atlassian_load_config bitbucket
+        auth="$BITBUCKET_AUTH"
+    else
+        { [ -n "${AUTH:-}" ] && [ -n "${BASE_URL:-}" ]; } || RECONFIGURE=0 atlassian_load_config site
+        auth="$AUTH"
+    fi
+    base="$(atlassian_base_url "$product")"
+    curl -fsS -u "$auth" "${base}${path}" "$@"
+}
+
+# ---- run as a command ----
+if [ "${BASH_SOURCE[0]}" = "$0" ]; then
+    set -euo pipefail
+    RECONFIGURE=0
+    case "${1:-}" in
+        configure)
+            shift
+            atlassian_prompt_config "${1:-site}"
+            ;;
+        api)
+            shift
+            [ $# -ge 2 ] || atlassian_die "usage: $0 api PRODUCT PATH [curl args...]"
+            atlassian_need curl
+            atlassian_api "$@"
+            ;;
+        -h|--help|"")
+            sed -n '2,25p' "$0" | sed 's/^# \?//'
+            [ -n "${1:-}" ]  # exit 0 for -h/--help, 1 for no args
+            ;;
+        *)
+            atlassian_die "unknown command: $1"
+            ;;
+    esac
+fi
